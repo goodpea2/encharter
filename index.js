@@ -107,6 +107,7 @@ function init() {
     ctxEdit = editorCanvas.getContext('2d');
     ctxPrev = previewCanvas.getContext('2d');
 
+    // Create AudioContext only after explicit interaction check is usually better, but initialization here is fine.
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
@@ -367,6 +368,10 @@ async function handleAudioUpload(e) {
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         duration = audioBuffer.duration;
         calculateWaveformPeaks();
+        // Resume context on first real upload to be safe
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
     } catch (err) {
         alert("Audio decode failed. Ensure it is a valid MP3/WAV.");
     }
@@ -388,8 +393,11 @@ function calculateWaveformPeaks() {
     }
 }
 
-function togglePlayback() {
+async function togglePlayback() {
     if (!audioBuffer) return;
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
     isPlaying ? pausePlayback() : startPlayback();
 }
 
@@ -420,14 +428,6 @@ function pausePlayback(atEnd = false) {
 }
 
 // -- VFX Engine --
-
-// Improved Particle Systems for IDLE_VFX
-const particleSystems = {
-    flames: [],
-    confetti: [],
-    glitter: []
-};
-
 function triggerVFX(laneId, type) {
     if (BURST_VFX.includes(type)) {
         activeBurstVFX.push({ type, startTime: performance.now(), progress: 0, active: true, laneId, randomSeed: Math.random() });
@@ -463,44 +463,49 @@ function drawHeart(ctx, x, y, size) {
 
 function renderVFX(ctx, width, height) {
     const now = performance.now();
-    
-    // -- High Quality Idle VFX --
     loopingVFX.forEach((vfxType) => {
         ctx.save();
         switch (vfxType) {
             case 'sparkle1':
             case 'sparkle2':
             case 'sparkle3':
-                const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 40 : 80;
-                ctx.globalAlpha = 0.6;
+                const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 40 : 60;
                 for (let i = 0; i < density; i++) {
-                    const phase = (now * 0.001 + i * 0.2) % 1;
-                    const x = (Math.sin(i * 123.456) * 0.5 + 0.5) * width;
-                    const y = (1 - phase) * height;
-                    const size = Math.abs(Math.sin(now * 0.005 + i)) * 3;
-                    ctx.fillStyle = '#fff';
+                    const seed = i * 1234.56;
+                    const x = ((Math.sin(seed) + 1) / 2) * width;
+                    const y = ((Math.cos(seed * 0.8) + 1) / 2) * height;
+                    const flicker = (Math.sin(now * 0.005 + seed) + 1) / 2;
+                    const size = (flicker * 3) + 1;
+                    ctx.globalAlpha = flicker * 0.8;
+                    ctx.fillStyle = "#fff";
                     ctx.shadowBlur = 10;
-                    ctx.shadowColor = '#fff';
-                    ctx.fillRect(x, y, size, size);
+                    ctx.shadowColor = "#fff";
+                    ctx.beginPath();
+                    ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
+                    ctx.moveTo(x, y - size); ctx.lineTo(x, y + size);
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(x, y, size/2, 0, Math.PI * 2);
+                    ctx.fill();
                 }
                 break;
             case 'flames1':
             case 'flames2':
             case 'flames3':
-                const fCount = vfxType === 'flames1' ? 30 : vfxType === 'flames2' ? 60 : 120;
+                const fCount = vfxType === 'flames1' ? 60 : vfxType === 'flames2' ? 120 : 250;
                 for (let i = 0; i < fCount; i++) {
                     const t = (now * 0.001 + i * (1/fCount) * 10) % 1;
                     const x = (Math.sin(i * 555) * 0.45 + 0.5) * width + Math.sin(now * 0.002 + i) * 30;
                     const y = height * (1 - t);
                     const size = (1 - t) * (vfxType === 'flames1' ? 15 : 25);
-                    const alpha = (1 - t) * 0.6;
-                    
+                    const alpha = (1 - t) * 0.3;
                     const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
                     grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
                     grad.addColorStop(0.2, `rgba(255, 220, 0, ${alpha})`);
                     grad.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.5})`);
                     grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-                    
                     ctx.fillStyle = grad;
                     ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
                 }
@@ -515,14 +520,13 @@ function renderVFX(ctx, width, height) {
                     const x = ((Math.sin(i * 99) + 1) / 2) * width + Math.sin(now * 0.001 + i) * 20;
                     const y = t * height;
                     const rotate = now * 0.01 + i;
-                    const flip = Math.sin(now * 0.008 + i); // 3D tumble simulation
-                    
+                    const flip = Math.sin(now * 0.008 + i);
                     ctx.fillStyle = colors[i % colors.length];
                     ctx.globalAlpha = 0.25;
                     ctx.save();
                     ctx.translate(x, y);
                     ctx.rotate(rotate);
-                    ctx.scale(1, flip); // simulate flipping
+                    ctx.scale(1, flip);
                     ctx.fillRect(-5, -5, 10, 10);
                     ctx.restore();
                 }
@@ -531,31 +535,27 @@ function renderVFX(ctx, width, height) {
         ctx.restore();
     });
 
-    // -- High Quality Burst VFX --
     activeBurstVFX = activeBurstVFX.filter(v => v.active);
     activeBurstVFX.forEach(vfx => {
         const dur = 600;
         vfx.progress = (now - vfx.startTime) / dur;
         if (vfx.progress >= 1) { vfx.active = false; return; }
-
         const p = vfx.progress;
         const easeOut = 1 - Math.pow(1 - p, 4);
         ctx.save();
-
         switch (vfx.type) {
             case 'heart1':
             case 'heart2':
             case 'heart3':
-                const hCount = vfx.type === 'heart1' ? 4 : vfx.type === 'heart2' ? 8 : 12;
+                const hCount = vfx.type === 'heart1' ? 6 : vfx.type === 'heart2' ? 12 : 24;
                 ctx.globalAlpha = 1 - p;
                 for (let i = 0; i < hCount; i++) {
                     const seed = i + (vfx.randomSeed * 100);
                     const angle = (i / hCount) * Math.PI * 2;
-                    const dist = easeOut * (vfx.type === 'heart3' ? 300 : 100);
+                    const dist = easeOut * (vfx.type === 'heart3' ? 400 : 200);
                     const hx = width/2 + Math.cos(angle) * dist + Math.sin(now * 0.005 + i) * 20;
                     const hy = height * 0.8 - (p * height) + Math.sin(angle) * 50;
                     const hSize = (1 - p) * 15 + 5;
-                    
                     ctx.fillStyle = i % 2 === 0 ? '#ff0044' : '#ff71ce';
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = ctx.fillStyle;
@@ -565,16 +565,16 @@ function renderVFX(ctx, width, height) {
             case 'glitter1':
             case 'glitter2':
             case 'glitter3':
-                const glCount = vfx.type === 'glitter1' ? 30 : vfx.type === 'glitter2' ? 60 : 120;
-                ctx.globalAlpha = 1 - easeOut;
+                const glCount = vfx.type === 'glitter1' ? 40 : vfx.type === 'glitter2' ? 80 : 150;
                 for (let i = 0; i < glCount; i++) {
-                    const gx = (Math.sin(i * 123 + (vfx.randomSeed || 0)) * 0.5 + 0.5) * width;
-                    const gy = (Math.cos(i * 456 + (vfx.randomSeed || 0)) * 0.5 + 0.5) * height;
-                    const gSize = Math.random() * 4 * (1 - p);
-                    ctx.fillStyle = '#fff';
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = '#fff';
-                    ctx.beginPath(); ctx.arc(gx, gy, gSize, 0, Math.PI * 2); ctx.fill();
+                    const seed = i + (vfx.randomSeed * 500);
+                    const gx = ((Math.sin(seed) + 1)/2) * width;
+                    const gy = ((Math.cos(seed * 0.7) + 1)/2) * height;
+                    const gAlpha = (1 - p) * ((Math.sin(now * 0.02 + i) + 1)/2);
+                    ctx.globalAlpha = gAlpha;
+                    ctx.fillStyle = "#fff";
+                    ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
+                    ctx.beginPath(); ctx.arc(gx, gy, Math.random() * 3 + 1, 0, Math.PI * 2); ctx.fill();
                 }
                 break;
             case 'explode1':
@@ -583,56 +583,48 @@ function renderVFX(ctx, width, height) {
                 const maxR = vfx.type === 'explode1' ? 150 : vfx.type === 'explode2' ? 300 : 500;
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = `rgba(255, 255, 255, ${1 - p})`;
-                ctx.beginPath(); ctx.arc(width*0.75, 0, maxR * easeOut, 0, Math.PI); ctx.stroke();
-                
-                const gradE = ctx.createRadialGradient(width*0.75, 0, 0, width*0.75, 0, maxR * easeOut);
+                ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.stroke();
+                const gradE = ctx.createRadialGradient(width/2, 0, 0, width/2, 0, maxR * easeOut);
                 gradE.addColorStop(0, 'rgba(255, 255, 255, 0)');
                 gradE.addColorStop(1, `rgba(255, 255, 255, ${(1 - p) * 0.3})`);
                 ctx.fillStyle = gradE;
-                ctx.beginPath(); ctx.arc(width*0.75, 0, maxR * easeOut, 0, Math.PI); ctx.fill();
+                ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.fill();
                 break;
             case 'light1':
             case 'light2':
             case 'light3':
-                // Spotlight with rays
-                const lIntensity = vfx.type === 'light1' ? 0.2 : vfx.type === 'light2' ? 0.4 : 0.7;
-                const beamCount = 8;
-                ctx.globalAlpha = (1 - easeOut) * lIntensity;
-                for (let i = 0; i < beamCount; i++) {
-                    const angle = (Math.PI / (beamCount - 1)) * i;
+                const beams = vfx.type === 'light1' ? 6 : vfx.type === 'light2' ? 9 : 12
+                ctx.globalAlpha = (1 - p) * 0.15;
+                for (let i = 0; i < beams; i++) {
+                    const angle = (Math.PI / beams) * i + (p * 0.5);
                     ctx.beginPath();
-                    ctx.moveTo(width / 2, 0);
-                    ctx.lineTo(width / 2 + Math.cos(angle) * width * 1.5, Math.sin(angle) * height);
-                    ctx.lineTo(width / 2 + Math.cos(angle + 0.1) * width * 1.5, Math.sin(angle + 0.1) * height);
-                    ctx.closePath();
-                    const gradL = ctx.createRadialGradient(width/2, 0, 0, width/2, 0, width);
-                    gradL.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-                    gradL.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                    ctx.fillStyle = gradL;
+                    ctx.moveTo(width/2, 0);
+                    ctx.lineTo(width/2 + Math.cos(angle) * width * 2, Math.sin(angle) * height);
+                    ctx.lineTo(width/2 + Math.cos(angle + 0.05) * width * 2, Math.sin(angle + 0.05) * height);
+                    ctx.fillStyle = '#fff';
                     ctx.fill();
                 }
                 break;
             case 'wipeDown':
-                ctx.globalAlpha = 1 - easeOut;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
                 ctx.fillRect(0, 0, width, height * easeOut);
                 break;
             case 'wipeUp':
-                ctx.globalAlpha = 1 - easeOut;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
                 ctx.fillRect(0, height * (1 - easeOut), width, height);
                 break;
             case 'wipeLeft':
-                ctx.globalAlpha = 1 - easeOut;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
                 ctx.fillRect(0, 0, width * easeOut, height);
                 break;
             case 'wipeRight':
-                ctx.globalAlpha = 1 - easeOut;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
                 ctx.fillRect(width * (1 - easeOut), 0, width * easeOut, height);
                 break;
         }
         ctx.restore();
     });
 
-    // Note Explosions
     activeExplosions = activeExplosions.filter(ex => now - ex.startTime < 500);
     activeExplosions.forEach(ex => {
         ex.particles.forEach(pt => {
@@ -670,12 +662,10 @@ function drawEditor(currentTime) {
     const laneWidth = width / lanes.length;
     const timeMin = currentTime - (height - hitZoneY) / pixelsPerSecondEditor;
     const timeMax = currentTime + (hitZoneY) / pixelsPerSecondEditor;
-
     lanes.forEach((l, i) => {
         ctxEdit.strokeStyle = GRID_COLOR;
         ctxEdit.beginPath(); ctxEdit.moveTo(i * laneWidth, 0); ctxEdit.lineTo(i * laneWidth, height); ctxEdit.stroke();
     });
-
     const timePerBeat = tickToTime(TICKS_PER_BAR / BEATS_PER_BAR);
     const timePerBar = tickToTime(TICKS_PER_BAR);
     const firstBar = Math.floor(timeMin / timePerBar) * timePerBar;
@@ -687,7 +677,6 @@ function drawEditor(currentTime) {
         ctxEdit.lineWidth = isBar ? 2 : 1;
         ctxEdit.beginPath(); ctxEdit.moveTo(0, y); ctxEdit.lineTo(width, y); ctxEdit.stroke();
     }
-
     events.forEach(e => {
         const laneIdx = lanes.findIndex(l => l.id === e.laneId);
         if (laneIdx === -1) return;
@@ -699,7 +688,6 @@ function drawEditor(currentTime) {
             ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
         }
     });
-
     if (ghostEvent) {
         const laneIdx = lanes.findIndex(l => l.id === ghostEvent.laneId);
         if (laneIdx !== -1) {
@@ -715,11 +703,9 @@ function drawPreview(currentTime) {
     const hitZoneY = height * 0.8;
     ctxPrev.clearRect(0, 0, width, height);
     renderVFX(ctxPrev, width, height);
-    
     const noteLanes = lanes.filter(l => l.type === 'note');
     if (noteLanes.length === 0) return;
     const laneWidth = width / noteLanes.length;
-    
     activeExplosions.forEach(ex => {
         const laneIdx = noteLanes.findIndex(l => l.id === ex.laneId);
         if (laneIdx !== -1) {
@@ -732,7 +718,6 @@ function drawPreview(currentTime) {
             ctxPrev.fillRect(laneIdx * laneWidth, 0, laneWidth, height);
         }
     });
-
     const timeMaxInView = currentTime + (hitZoneY / pixelsPerSecondLive);
     events.forEach(e => {
         const laneIdx = noteLanes.findIndex(l => l.id === e.laneId);
@@ -763,7 +748,6 @@ function renderLoop() {
     drawEditor(currentTime);
     drawPreview(currentTime);
     updateTimeDisplay(currentTime);
-    
     if (isPlaying) {
         const noteLanes = lanes.filter(l => l.type === 'note');
         events.forEach(e => {
