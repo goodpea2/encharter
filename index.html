@@ -224,6 +224,21 @@
             cursor: col-resize;
             display: none;
         }
+
+        .sprite-tab-btn {
+            padding: 8px 16px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255,255,255,0.4);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .sprite-tab-btn.active {
+            color: #ff71ce;
+            border-bottom-color: #ff71ce;
+        }
     </style>
 <script type="importmap">
 {
@@ -315,6 +330,7 @@
                     <div class="flex gap-2">
                         <input type="file" id="bgInput" accept="image/*" class="hidden">
                         <input type="file" id="noteSpriteInput" accept="image/*" class="hidden">
+                        <input type="file" id="longNoteSpriteInput" accept="image/*" class="hidden">
                         <button onclick="document.getElementById('bgInput').click()" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">BG</button>
                         <button id="noteEditBtn" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">NOTE</button>
                     </div>
@@ -360,17 +376,25 @@
     <!-- Sprite Editor Modal -->
     <div id="spriteModal" class="sprite-modal">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest">Sprite Boundary Editor</h3>
+            <div class="flex items-end gap-6">
+                <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-2">Boundary Editor</h3>
+                <div class="flex gap-2">
+                    <button id="tabNormalBtn" class="sprite-tab-btn active">Normal Note</button>
+                    <button id="tabLongBtn" class="sprite-tab-btn">Long Note</button>
+                </div>
+            </div>
             <div class="flex gap-2">
                 <button id="spriteUploadBtn" class="px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] uppercase font-bold text-white hover:bg-pink-500/20">Upload New</button>
+                <button id="clearTextureBtn" class="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded text-[10px] uppercase font-bold text-red-400 hover:bg-red-500/20">Clear</button>
                 <button id="saveSpriteBtn" class="px-3 py-1 bg-pink-500 rounded text-[10px] uppercase font-bold text-white shadow-lg">Save</button>
                 <button id="closeSpriteBtn" class="px-3 py-1 bg-white/5 rounded text-[10px] uppercase font-bold text-white/50">&times;</button>
             </div>
         </div>
-        <div class="relative bg-[#050507] rounded-lg overflow-hidden border border-white/10 flex items-center justify-center p-4" style="height: 70vh;">
+        <div class="relative bg-[#050507] rounded-lg overflow-hidden border border-white/10 flex items-center justify-center p-4" style="height: 65vh;">
             <canvas id="spriteEditorCanvas" class="shadow-2xl"></canvas>
         </div>
-        <p class="text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag the boundary corners to set the note appearance. The selected slice will be stretched into the game lanes.</p>
+        <div id="hintNormal" class="text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag corners to set the single-note crop. This will be centered in lanes.</div>
+        <div id="hintLong" class="hidden text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag the 4 grid lines to set 9-Slice boundaries. Corners stay fixed; edges and center stretch to fill.</div>
     </div>
 
     <footer class="h-20 flex-shrink-0 bg-[#0a0a0c] border-t border-white/10 px-4 flex items-center justify-between gap-4 z-50 overflow-hidden">

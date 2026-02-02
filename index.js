@@ -1,4 +1,4 @@
-// --- Rhythm Studio: Professional Vfx Editor v3.9 (JS Edition) ---
+// --- Rhythm Studio: Professional Vfx Editor v4.2 (JS Edition) ---
 
 import { GoogleGenAI } from "@google/genai";
 
@@ -6,12 +6,14 @@ import { GoogleGenAI } from "@google/genai";
 const TICKS_PER_BAR = 96; 
 const BEATS_PER_BAR = 4;   
 const NOTE_COLOR = '#ff71ce';
+const LONG_NOTE_COLOR = '#fbbf24'; // Amber-400
 const VFX_COLOR = '#06b6d4';
 const GHOST_NOTE_COLOR = 'rgba(255, 113, 206, 0.25)';
 const GRID_COLOR = 'rgba(255, 255, 255, 0.05)';
 const BEAT_LINE_COLOR = 'rgba(255, 255, 255, 0.15)';
 const BAR_LINE_COLOR = 'rgba(255, 255, 255, 0.45)';
 const WAVEFORM_COLOR = '#fce4ec'; 
+const HOLD_GAP_THRESHOLD = 3; // 1/32 bar (96 / 32)
 
 const BURST_VFX = [
     'explode1', 'explode2', 'explode3', 
@@ -51,23 +53,26 @@ let gridSnap = 6;
 let pixelsPerSecondEditor = 300; 
 let pixelsPerSecondLive = 625;   
 let noteThicknessLive = 18;
-let noteWidthScale = 0.8; // 80%
+let noteWidthScale = 0.8; 
 let vfxAlpha = 0.25;
 let isPlaying = false;
 let startTime = 0;
 let pauseOffset = 0;
 let audioOffset = 0; 
-let duration = 300; // Default 5 mins for silent composition
+let duration = 300; 
 let nextId = 0;
 let isInvertedScroll = true;
 
 // Custom Assets
 let customBgImage = null;
 let customNoteImage = null;
-let customNoteRect = { x: 0, y: 0, w: 0, h: 0 }; // in IMAGE PIXELS
+let customNoteRect = { x: 0, y: 0, w: 0, h: 0 };
+let customLongNoteImage = null;
+let customLongNoteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 }; 
 
 // Modal State
 let editingLaneId = null;
+let spriteEditorMode = 'normal'; // 'normal' or 'long'
 
 // Input State
 let ghostEvent = null;
@@ -79,15 +84,16 @@ let isShiftPressed = false;
 
 // Sprite Editor State
 let spriteEditorActive = false;
-let dragTarget = null; // 'tl', 'tr', 'bl', 'br', 'center'
+let dragTarget = null; // 'tl', 'tr', 'bl', 'br', 'center', 's1', 's2', 'v1', 'v2'
 let dragOffset = { x: 0, y: 0 };
-let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0 }; // in IMAGE PIXELS
+let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 }; 
 let displayScale = 1.0;
 
 // -- DOM Elements --
 let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
-let bgInput, noteSpriteInput, noteEditBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn, spriteUploadBtn;
+let bgInput, noteSpriteInput, longNoteSpriteInput, noteEditBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn, spriteUploadBtn, clearTextureBtn;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
+let tabNormalBtn, tabLongBtn, hintNormal, hintLong;
 
 // -- Initialization --
 function init() {
@@ -128,6 +134,7 @@ function init() {
     // Sprite Elements
     bgInput = document.getElementById('bgInput');
     noteSpriteInput = document.getElementById('noteSpriteInput');
+    longNoteSpriteInput = document.getElementById('longNoteSpriteInput');
     noteEditBtn = document.getElementById('noteEditBtn');
     spriteModal = document.getElementById('spriteModal');
     spriteEditorCanvas = document.getElementById('spriteEditorCanvas');
@@ -135,6 +142,11 @@ function init() {
     saveSpriteBtn = document.getElementById('saveSpriteBtn');
     closeSpriteBtn = document.getElementById('closeSpriteBtn');
     spriteUploadBtn = document.getElementById('spriteUploadBtn');
+    clearTextureBtn = document.getElementById('clearTextureBtn');
+    tabNormalBtn = document.getElementById('tabNormalBtn');
+    tabLongBtn = document.getElementById('tabLongBtn');
+    hintNormal = document.getElementById('hintNormal');
+    hintLong = document.getElementById('hintLong');
 
     // Resizers
     resizer1 = document.getElementById('resizer1');
@@ -154,14 +166,11 @@ function init() {
     renderVfxOptions();
     handleResize();
     requestAnimationFrame(renderLoop);
-    
-    // Load default project and audio track
     loadDefaultData();
 }
 
 async function loadDefaultData() {
     try {
-        // Fetch project JSON
         const projectRes = await fetch('data/sample.json');
         if (projectRes.ok) {
             const data = await projectRes.json();
@@ -174,8 +183,6 @@ async function loadDefaultData() {
             updateOffsetDisplay();
             renderLaneHeaders();
         }
-
-        // Fetch audio file
         const audioRes = await fetch('audio/sample.mp3');
         if (audioRes.ok) {
             trackNameLabel.textContent = "sample.mp3";
@@ -184,15 +191,13 @@ async function loadDefaultData() {
             duration = audioBuffer.duration;
             calculateWaveformPeaks();
         } else {
-            console.log("No default audio found. Metronome mode active.");
-            trackNameLabel.textContent = "No Audio loaded";
+            trackNameLabel.textContent = "Silent Mode";
         }
     } catch (err) {
-        console.warn("Default data load failed. App will initialize empty.", err);
+        console.warn("Init load failed.", err);
     }
 }
 
-// -- Helper Conversions --
 function tickToTime(tick) {
     return tick / ((TICKS_PER_BAR * bpm) / 240);
 }
@@ -201,21 +206,65 @@ function timeToTick(time) {
     return Math.round(time * ((TICKS_PER_BAR * bpm) / 240));
 }
 
+function getNoteSegments(laneId) {
+    const laneEvents = events.filter(e => e.laneId === laneId).sort((a, b) => a.tick - b.tick);
+    if (laneEvents.length === 0) return [];
+
+    const segments = [];
+    let currentSegment = {
+        startTick: laneEvents[0].tick,
+        endTick: laneEvents[0].tick,
+        laneId: laneId,
+        eventIds: [laneEvents[0].id]
+    };
+
+    for (let i = 1; i < laneEvents.length; i++) {
+        const e = laneEvents[i];
+        if (e.tick - currentSegment.endTick <= HOLD_GAP_THRESHOLD) {
+            currentSegment.endTick = e.tick;
+            currentSegment.eventIds.push(e.id);
+        } else {
+            segments.push({ ...currentSegment, isLong: currentSegment.eventIds.length > 1 });
+            currentSegment = {
+                startTick: e.tick,
+                endTick: e.tick,
+                laneId: laneId,
+                eventIds: [e.id]
+            };
+        }
+    }
+    segments.push({ ...currentSegment, isLong: currentSegment.eventIds.length > 1 });
+    return segments;
+}
+
 function setupListeners() {
     audioInput.addEventListener('change', handleAudioUpload);
     projectInput.addEventListener('change', handleProjectImportFile);
     bgInput.addEventListener('change', handleBgUpload);
-    noteSpriteInput.addEventListener('change', handleNoteSpriteUpload);
+    noteSpriteInput.addEventListener('change', (e) => handleSpriteUpload(e, 'normal'));
+    longNoteSpriteInput.addEventListener('change', (e) => handleSpriteUpload(e, 'long'));
+
+    tabNormalBtn.addEventListener('click', () => { spriteEditorMode = 'normal'; updateSpriteModalUI(); });
+    tabLongBtn.addEventListener('click', () => { spriteEditorMode = 'long'; updateSpriteModalUI(); });
 
     noteEditBtn.addEventListener('click', () => {
-        if (customNoteImage) {
-            openSpriteEditor();
-        } else {
-            noteSpriteInput.click();
-        }
+        openSpriteEditor();
     });
 
-    spriteUploadBtn.addEventListener('click', () => noteSpriteInput.click());
+    spriteUploadBtn.addEventListener('click', () => {
+        spriteEditorMode === 'normal' ? noteSpriteInput.click() : longNoteSpriteInput.click();
+    });
+
+    clearTextureBtn.addEventListener('click', () => {
+        if (spriteEditorMode === 'normal') {
+            customNoteImage = null;
+            customNoteRect = { x: 0, y: 0, w: 0, h: 0 };
+        } else {
+            customLongNoteImage = null;
+            customLongNoteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
+        }
+        renderSpriteEditor();
+    });
 
     playBtn.addEventListener('click', togglePlayback);
     exportBtn.addEventListener('click', exportProject);
@@ -239,7 +288,17 @@ function setupListeners() {
     saveSpriteBtn.onclick = saveSpriteRect;
     closeSpriteBtn.onclick = () => { spriteModal.style.display = 'none'; spriteEditorActive = false; };
 
-    // Column Resizing
+    // Prevent context menu to avoid "stuck" state on right click erase
+    editorCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Safety: Reset drag states if window loses focus
+    window.addEventListener('blur', () => {
+        isLeftDragging = false;
+        isRightDragging = false;
+        isMiddleDragging = false;
+        dragTarget = null;
+    });
+
     const initResizer = (resizer, targetPanel, isRightSide) => {
         let startX = 0;
         let startBasis = 0;
@@ -268,9 +327,6 @@ function setupListeners() {
     };
     initResizer(resizer1, waveformPanel, false);
     initResizer(resizer2, previewPanel, true);
-
-    window.addEventListener('keydown', (e) => { if (e.key === 'Shift') isShiftPressed = true; });
-    window.addEventListener('keyup', (e) => { if (e.key === 'Shift') isShiftPressed = false; });
 
     window.addEventListener('mouseup', (e) => {
         if (e.button === 0) isLeftDragging = false;
@@ -310,11 +366,17 @@ function setupListeners() {
         }
     });
 
-    editorCanvas.addEventListener('mouseleave', () => { ghostEvent = null; });
-
     const getHandleAt = (mx, my) => {
         const r = currentSpriteRect;
         const hSize = 15 / displayScale; 
+        if (spriteEditorMode === 'long') {
+            const sx1 = r.x + r.s1; const sx2 = r.x + r.s2;
+            const sv1 = r.y + r.v1; const sv2 = r.y + r.v2;
+            if (Math.abs(mx - sx1) < hSize && my > r.y && my < r.y + r.h) return 's1';
+            if (Math.abs(mx - sx2) < hSize && my > r.y && my < r.y + r.h) return 's2';
+            if (Math.abs(my - sv1) < hSize && mx > r.x && mx < r.x + r.w) return 'v1';
+            if (Math.abs(my - sv2) < hSize && mx > r.x && mx < r.x + r.w) return 'v2';
+        }
         if (Math.abs(mx - r.x) < hSize && Math.abs(my - r.y) < hSize) return 'tl';
         if (Math.abs(mx - (r.x + r.w)) < hSize && Math.abs(my - r.y) < hSize) return 'tr';
         if (Math.abs(mx - r.x) < hSize && Math.abs(my - (r.y + r.h)) < hSize) return 'bl';
@@ -340,6 +402,9 @@ function setupListeners() {
         const mx = (e.clientX - rect.left) / displayScale;
         const my = (e.clientY - rect.top) / displayScale;
         const s = currentSpriteRect;
+        const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
+        if (!img) return;
+
         if (dragTarget === 'tl') {
             const dx = mx - s.x; const dy = my - s.y;
             s.x = mx; s.y = my; s.w -= dx; s.h -= dy;
@@ -354,11 +419,20 @@ function setupListeners() {
         } else if (dragTarget === 'center') {
             s.x = mx - dragOffset.x;
             s.y = my - dragOffset.y;
+        } else if (dragTarget === 's1') {
+            s.s1 = Math.max(0, Math.min(s.s2 - 1, mx - s.x));
+        } else if (dragTarget === 's2') {
+            s.s2 = Math.max(s.s1 + 1, Math.min(s.w, mx - s.x));
+        } else if (dragTarget === 'v1') {
+            s.v1 = Math.max(0, Math.min(s.v2 - 1, my - s.y));
+        } else if (dragTarget === 'v2') {
+            s.v2 = Math.max(s.v1 + 1, Math.min(s.h, my - s.y));
         }
-        s.x = Math.max(0, Math.min(customNoteImage.width - 10, s.x));
-        s.y = Math.max(0, Math.min(customNoteImage.height - 10, s.y));
-        s.w = Math.min(customNoteImage.width - s.x, Math.max(10, s.w));
-        s.h = Math.min(customNoteImage.height - s.y, Math.max(10, s.h));
+
+        s.x = Math.max(0, Math.min(img.width - 10, s.x));
+        s.y = Math.max(0, Math.min(img.height - 10, s.y));
+        s.w = Math.min(img.width - s.x, Math.max(10, s.w));
+        s.h = Math.min(img.height - s.y, Math.max(10, s.h));
         renderSpriteEditor();
     });
 
@@ -371,6 +445,7 @@ function setupListeners() {
         if (handle === 'tl' || handle === 'br') spriteEditorCanvas.style.cursor = 'nwse-resize';
         else if (handle === 'tr' || handle === 'bl') spriteEditorCanvas.style.cursor = 'nesw-resize';
         else if (handle === 'center') spriteEditorCanvas.style.cursor = 'move';
+        else if (['s1', 's2', 'v1', 'v2'].includes(handle)) spriteEditorCanvas.style.cursor = handle[0] === 's' ? 'ew-resize' : 'ns-resize';
         else spriteEditorCanvas.style.cursor = 'default';
     });
 
@@ -386,18 +461,12 @@ function setupListeners() {
         const currentY = e.clientY;
         const deltaY = currentY - lastMouseY;
         const timeDelta = deltaY / pixelsPerSecondEditor;
-        if (isShiftPressed && audioBuffer) {
-            audioOffset -= timeDelta; 
-            updateOffsetDisplay();
-        } else {
-            const direction = isInvertedScroll ? 1 : -1;
-            pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset + timeDelta * direction));
-            if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
-        }
+        const direction = isInvertedScroll ? 1 : -1;
+        pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset + timeDelta * direction));
+        if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
         lastMouseY = currentY;
     });
 
-    editorCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('resize', handleResize);
     window.addEventListener('wheel', (e) => {
         if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
@@ -408,7 +477,6 @@ function setupListeners() {
     }, { passive: true });
 }
 
-// -- Assets Handling --
 function handleBgUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -421,14 +489,16 @@ function handleBgUpload(e) {
     reader.readAsDataURL(file);
 }
 
-function handleNoteSpriteUpload(e) {
+function handleSpriteUpload(e, mode) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-            customNoteImage = img;
+            if (mode === 'normal') customNoteImage = img;
+            else customLongNoteImage = img;
+            spriteEditorMode = mode;
             openSpriteEditor();
         };
         img.src = event.target.result;
@@ -436,41 +506,100 @@ function handleNoteSpriteUpload(e) {
     reader.readAsDataURL(file);
 }
 
+function updateSpriteModalUI() {
+    if (spriteEditorMode === 'normal') {
+        tabNormalBtn.classList.add('active');
+        tabLongBtn.classList.remove('active');
+        hintNormal.classList.remove('hidden');
+        hintLong.classList.add('hidden');
+    } else {
+        tabLongBtn.classList.add('active');
+        tabNormalBtn.classList.remove('active');
+        hintLong.classList.remove('hidden');
+        hintNormal.classList.add('hidden');
+    }
+    openSpriteEditor();
+}
+
 function openSpriteEditor() {
     spriteModal.style.display = 'block';
     spriteEditorActive = true;
+    
+    const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
+    if (!img) {
+        spriteEditorCanvas.width = 400;
+        spriteEditorCanvas.height = 200;
+        ctxSprite.clearRect(0, 0, 400, 200);
+        ctxSprite.fillStyle = "#1a1a1f";
+        ctxSprite.fillRect(0,0,400,200);
+        ctxSprite.fillStyle = "#fff";
+        ctxSprite.textAlign = "center";
+        ctxSprite.fillText("No Texture Uploaded", 200, 100);
+        return;
+    }
+
     const container = spriteEditorCanvas.parentElement;
     const cWidth = container.clientWidth - 40;
     const cHeight = container.clientHeight - 40;
-    displayScale = Math.min(cWidth / customNoteImage.width, cHeight / customNoteImage.height);
-    spriteEditorCanvas.width = customNoteImage.width * displayScale;
-    spriteEditorCanvas.height = customNoteImage.height * displayScale;
-    if (customNoteRect.w === 0) {
-        const w = customNoteImage.width * 0.8;
-        const h = customNoteImage.height * 0.2;
-        currentSpriteRect = { x: (customNoteImage.width - w) / 2, y: (customNoteImage.height - h) / 2, w: w, h: h };
+    
+    displayScale = Math.min(cWidth / img.width, cHeight / img.height);
+    spriteEditorCanvas.width = img.width * displayScale;
+    spriteEditorCanvas.height = img.height * displayScale;
+    
+    const storedRect = spriteEditorMode === 'normal' ? customNoteRect : customLongNoteRect;
+
+    if (storedRect.w === 0) {
+        const w = img.width * 0.8;
+        const h = img.height * 0.6;
+        currentSpriteRect = {
+            x: (img.width - w) / 2, y: (img.height - h) / 2, w: w, h: h,
+            s1: w * 0.2, s2: w * 0.8, v1: h * 0.2, v2: h * 0.8
+        };
     } else {
-        currentSpriteRect = { ...customNoteRect };
+        currentSpriteRect = { ...storedRect };
     }
     renderSpriteEditor();
 }
 
 function renderSpriteEditor() {
+    const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
+    if (!img) return;
+
     const { width, height } = spriteEditorCanvas;
     ctxSprite.clearRect(0, 0, width, height);
-    ctxSprite.drawImage(customNoteImage, 0, 0, width, height);
+    ctxSprite.drawImage(img, 0, 0, width, height);
+    
     const rx = currentSpriteRect.x * displayScale;
     const ry = currentSpriteRect.y * displayScale;
     const rw = currentSpriteRect.w * displayScale;
     const rh = currentSpriteRect.h * displayScale;
+    
     ctxSprite.fillStyle = 'rgba(0,0,0,0.7)';
     ctxSprite.fillRect(0, 0, width, ry);
     ctxSprite.fillRect(0, ry + rh, width, height - (ry + rh));
     ctxSprite.fillRect(0, ry, rx, rh);
     ctxSprite.fillRect(rx + rw, ry, width - (rx + rw), rh);
+    
     ctxSprite.strokeStyle = '#ff71ce';
     ctxSprite.lineWidth = 2;
     ctxSprite.strokeRect(rx, ry, rw, rh);
+    
+    if (spriteEditorMode === 'long') {
+        ctxSprite.setLineDash([5, 5]);
+        ctxSprite.strokeStyle = '#fbbf24';
+        ctxSprite.lineWidth = 1;
+        const sx1 = (currentSpriteRect.x + currentSpriteRect.s1) * displayScale;
+        const sx2 = (currentSpriteRect.x + currentSpriteRect.s2) * displayScale;
+        const sv1 = (currentSpriteRect.y + currentSpriteRect.v1) * displayScale;
+        const sv2 = (currentSpriteRect.y + currentSpriteRect.v2) * displayScale;
+        
+        ctxSprite.beginPath(); ctxSprite.moveTo(sx1, ry); ctxSprite.lineTo(sx1, ry + rh); ctxSprite.stroke();
+        ctxSprite.beginPath(); ctxSprite.moveTo(sx2, ry); ctxSprite.lineTo(sx2, ry + rh); ctxSprite.stroke();
+        ctxSprite.beginPath(); ctxSprite.moveTo(rx, sv1); ctxSprite.lineTo(rx + rw, sv1); ctxSprite.stroke();
+        ctxSprite.beginPath(); ctxSprite.moveTo(rx, sv2); ctxSprite.lineTo(rx + rw, sv2); ctxSprite.stroke();
+        ctxSprite.setLineDash([]);
+    }
+
     ctxSprite.fillStyle = '#fff';
     ctxSprite.strokeStyle = '#000';
     ctxSprite.lineWidth = 1;
@@ -481,12 +610,11 @@ function renderSpriteEditor() {
 }
 
 function saveSpriteRect() {
-    customNoteRect = { ...currentSpriteRect };
-    spriteModal.style.display = 'none';
-    spriteEditorActive = false;
+    if (spriteEditorMode === 'normal') customNoteRect = { ...currentSpriteRect };
+    else customLongNoteRect = { ...currentSpriteRect };
+    // No longer closing the modal here to allow continuous editing
 }
 
-// -- Lane Management --
 function renderLaneHeaders() {
     laneHeaders.innerHTML = '';
     lanes.forEach(lane => {
@@ -555,9 +683,8 @@ function deleteCurrentLane() {
     vfxModal.style.display = 'none';
 }
 
-// -- Project Import / Export --
 function exportProject() {
-    const data = { lanes, events, audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "3.5" };
+    const data = { lanes, events, audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "4.2" };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -613,7 +740,6 @@ function handleResize() {
     });
 }
 
-// -- Audio Handling --
 async function handleAudioUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -623,12 +749,8 @@ async function handleAudioUpload(e) {
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         duration = audioBuffer.duration;
         calculateWaveformPeaks();
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-    } catch (err) {
-        alert("Audio decode failed. Ensure it is a valid MP3/WAV.");
-    }
+        if (audioContext.state === 'suspended') await audioContext.resume();
+    } catch (err) { alert("Audio decode failed."); }
 }
 
 function calculateWaveformPeaks() {
@@ -648,9 +770,7 @@ function calculateWaveformPeaks() {
 }
 
 async function togglePlayback() {
-    if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-    }
+    if (audioContext.state === 'suspended') await audioContext.resume();
     isPlaying ? pausePlayback() : startPlayback();
 }
 
@@ -677,9 +797,7 @@ function pausePlayback(atEnd = false) {
     isPlaying = false;
     playIcon.classList.remove('hidden');
     pauseIcon.classList.add('hidden');
-    activeBurstVFX = [];
-    loopingVFX.clear();
-    activeExplosions = [];
+    activeBurstVFX = []; loopingVFX.clear(); activeExplosions = [];
 }
 
 // -- VFX Engine --
@@ -720,9 +838,7 @@ function renderVFX(ctx, width, height) {
     loopingVFX.forEach((vfxType) => {
         ctx.save();
         switch (vfxType) {
-            case 'sparkle1':
-            case 'sparkle2':
-            case 'sparkle3':
+            case 'sparkle1': case 'sparkle2': case 'sparkle3':
                 const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 50 : 100;
                 for (let i = 0; i < density; i++) {
                     const seed = i * 1234.56;
@@ -731,16 +847,13 @@ function renderVFX(ctx, width, height) {
                     const flicker = (Math.sin(now * 0.005 + seed) + 1) / 2;
                     const size = (flicker * 3) + 1;
                     ctx.globalAlpha = flicker * 0.8 * vfxAlpha;
-                    ctx.fillStyle = "#fff";
-                    ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
+                    ctx.fillStyle = "#fff"; ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
                     ctx.beginPath(); ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
                     ctx.moveTo(x, y - size); ctx.lineTo(x, y + size); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
                     ctx.beginPath(); ctx.arc(x, y, size/2, 0, Math.PI * 2); ctx.fill();
                 }
                 break;
-            case 'flames1':
-            case 'flames2':
-            case 'flames3':
+            case 'flames1': case 'flames2': case 'flames3':
                 const fCount = vfxType === 'flames1' ? 60 : vfxType === 'flames2' ? 120 : 250;
                 for (let i = 0; i < fCount; i++) {
                     const t = (now * 0.001 + i * (1/fCount) * 10) % 1;
@@ -754,9 +867,7 @@ function renderVFX(ctx, width, height) {
                     ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
                 }
                 break;
-            case 'confetti1':
-            case 'confetti2':
-            case 'confetti3':
+            case 'confetti1': case 'confetti2': case 'confetti3':
                 const cCount = vfxType === 'confetti1' ? 40 : vfxType === 'confetti2' ? 80 : 160;
                 const colors = ['#ff71ce', '#01cdfe', '#05ffa1', '#b967ff', '#fffb96'];
                 for (let i = 0; i < cCount; i++) {
@@ -774,15 +885,12 @@ function renderVFX(ctx, width, height) {
 
     activeBurstVFX = activeBurstVFX.filter(v => v.active);
     activeBurstVFX.forEach(vfx => {
-        const dur = 700;
-        vfx.progress = (now - vfx.startTime) / dur;
+        const dur = 700; vfx.progress = (now - vfx.startTime) / dur;
         if (vfx.progress >= 1) { vfx.active = false; return; }
         const p = vfx.progress; const easeOut = 1 - Math.pow(1 - p, 4);
         ctx.save();
         switch (vfx.type) {
-            case 'heart1':
-            case 'heart2':
-            case 'heart3':
+            case 'heart1': case 'heart2': case 'heart3':
                 const hCount = vfx.type === 'heart1' ? 8 : vfx.type === 'heart2' ? 16 : 32;
                 ctx.globalAlpha = (1 - p) * vfxAlpha;
                 for (let i = 0; i < hCount; i++) {
@@ -793,9 +901,7 @@ function renderVFX(ctx, width, height) {
                     ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; drawHeart(ctx, hx, hy, hSize);
                 }
                 break;
-            case 'glitter1':
-            case 'glitter2':
-            case 'glitter3':
+            case 'glitter1': case 'glitter2': case 'glitter3':
                 const glCount = vfx.type === 'glitter1' ? 40 : vfx.type === 'glitter2' ? 80 : 150;
                 for (let i = 0; i < glCount; i++) {
                     const seed = i + (vfx.randomSeed * 500); const gx = ((Math.sin(seed) + 1)/2) * width;
@@ -805,9 +911,7 @@ function renderVFX(ctx, width, height) {
                     ctx.beginPath(); ctx.arc(gx, gy, Math.random() * 3 + 1, 0, Math.PI * 2); ctx.fill();
                 }
                 break;
-            case 'explode1':
-            case 'explode2':
-            case 'explode3':
+            case 'explode1': case 'explode2': case 'explode3':
                 const maxR = vfx.type === 'explode1' ? 150 : vfx.type === 'explode2' ? 300 : 500;
                 ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - p) * vfxAlpha})`;
                 ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.stroke();
@@ -815,9 +919,7 @@ function renderVFX(ctx, width, height) {
                 gradE.addColorStop(0, 'rgba(255, 255, 255, 0)'); gradE.addColorStop(1, `rgba(255, 255, 255, ${(1 - p) * 0.3 * vfxAlpha})`);
                 ctx.fillStyle = gradE; ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.fill();
                 break;
-            case 'light1':
-            case 'light2':
-            case 'light3':
+            case 'light1': case 'light2': case 'light3':
                 const beams = 12; ctx.globalAlpha = (1 - p) * 0.5 * vfxAlpha;
                 for (let i = 0; i < beams; i++) {
                     const angle = (Math.PI / beams) * i + (p * 0.5);
@@ -848,7 +950,6 @@ function renderVFX(ctx, width, height) {
     });
 }
 
-// -- Drawing Logic --
 function drawWaveform(currentTime) {
     if (!waveformPeaks) return;
     const { width, height } = waveformCanvas;
@@ -884,23 +985,51 @@ function drawEditor(currentTime) {
         ctxEdit.strokeStyle = isBar ? BAR_LINE_COLOR : BEAT_LINE_COLOR; ctxEdit.lineWidth = isBar ? 2 : 1;
         ctxEdit.beginPath(); ctxEdit.moveTo(0, y); ctxEdit.lineTo(width, y); ctxEdit.stroke();
     }
-    events.forEach(e => {
-        const laneIdx = lanes.findIndex(l => l.id === e.laneId);
-        if (laneIdx === -1) return;
-        const eventTime = tickToTime(e.tick);
-        if (eventTime >= timeMin && eventTime <= timeMax) {
-            const y = hitZoneY - (eventTime - currentTime) * pixelsPerSecondEditor;
-            const lane = lanes[laneIdx];
-            ctxEdit.fillStyle = lane.type === 'note' ? NOTE_COLOR : VFX_COLOR;
-            ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
-        }
+    lanes.forEach((lane, laneIdx) => {
+        const segments = lane.type === 'note' ? getNoteSegments(lane.id) : [];
+        const isPartofLongGroup = (tick) => {
+            const seg = segments.find(s => tick >= s.startTick && tick <= s.endTick);
+            return seg ? seg.isLong : false;
+        };
+        events.filter(e => e.laneId === lane.id).forEach(e => {
+            const eventTime = tickToTime(e.tick);
+            if (eventTime >= timeMin && eventTime <= timeMax) {
+                const y = hitZoneY - (eventTime - currentTime) * pixelsPerSecondEditor;
+                if (lane.type !== 'note') ctxEdit.fillStyle = VFX_COLOR;
+                else ctxEdit.fillStyle = isPartofLongGroup(e.tick) ? LONG_NOTE_COLOR : NOTE_COLOR;
+                ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
+            }
+        });
     });
     if (ghostEvent) {
         const laneIdx = lanes.findIndex(l => l.id === ghostEvent.laneId);
         if (laneIdx !== -1) {
             const y = hitZoneY - (tickToTime(ghostEvent.tick) - currentTime) * pixelsPerSecondEditor;
-            ctxEdit.fillStyle = GHOST_NOTE_COLOR;
-            ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
+            ctxEdit.fillStyle = GHOST_NOTE_COLOR; ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
+        }
+    }
+}
+
+function draw9Slice(ctx, img, rect, x, y, w, h) {
+    const { x: rx, y: ry, w: rw, h: rh, s1, s2, v1, v2 } = rect;
+    // Source sizes
+    const sw = [s1, s2 - s1, rw - s2];
+    const sh = [v1, v2 - v1, rh - v2];
+    // Scale horizontal based on lane width fit
+    const scaleX = w / rw;
+    // For vertical elements, we use scaleX as the baseline scale to maintain visual consistency of the caps
+    const scaleCap = scaleX; 
+    const dw = [sw[0] * scaleX, Math.max(0, w - (sw[0] + sw[2]) * scaleX), sw[2] * scaleX];
+    const dh = [sh[0] * scaleCap, Math.max(0, h - (sh[0] + sh[2]) * scaleCap), sh[2] * scaleCap];
+    // Correct logic: Only center segment (index 1) should soak up the duration height
+    const sourceX = [rx, rx + s1, rx + s2];
+    const sourceY = [ry, ry + v1, ry + v2];
+    const destX = [x, x + dw[0], x + dw[0] + dw[1]];
+    const destY = [y, y + dh[0], y + dh[0] + dh[1]];
+    for (let iy = 0; iy < 3; iy++) {
+        for (let ix = 0; ix < 3; ix++) {
+            if (sw[ix] <= 0 || sh[iy] <= 0 || dw[ix] <= 0 || dh[iy] <= 0) continue;
+            ctx.drawImage(img, sourceX[ix], sourceY[iy], sw[ix], sh[iy], destX[ix], destY[iy], dw[ix], dh[iy]);
         }
     }
 }
@@ -911,8 +1040,7 @@ function drawPreview(currentTime) {
     ctxPrev.clearRect(0, 0, width, height);
     if (customBgImage) {
         const scale = Math.max(width / customBgImage.width, height / customBgImage.height);
-        const x = (width / 2) - (customBgImage.width / 2) * scale;
-        const y = (height / 2) - (customBgImage.height / 2) * scale;
+        const x = (width / 2) - (customBgImage.width / 2) * scale; const y = (height / 2) - (customBgImage.height / 2) * scale;
         ctxPrev.drawImage(customBgImage, x, y, customBgImage.width * scale, customBgImage.height * scale);
         ctxPrev.fillStyle = 'rgba(0,0,0,0.3)'; ctxPrev.fillRect(0,0,width,height);
     }
@@ -931,23 +1059,36 @@ function drawPreview(currentTime) {
         }
     });
     const timeMaxInView = currentTime + (hitZoneY / pixelsPerSecondLive);
-    events.forEach(e => {
-        const laneIdx = noteLanes.findIndex(l => l.id === e.laneId);
-        if (laneIdx === -1) return;
-        const noteTime = tickToTime(e.tick);
-        if (noteTime >= currentTime && noteTime <= timeMaxInView) {
-            const y = hitZoneY - (noteTime - currentTime) * pixelsPerSecondLive;
+    noteLanes.forEach((lane, laneIdx) => {
+        const segments = getNoteSegments(lane.id);
+        segments.forEach(seg => {
+            const startT = tickToTime(seg.startTick);
+            const endT = tickToTime(seg.endTick);
+            if (endT < currentTime || startT > timeMaxInView) return;
+            const y1 = hitZoneY - (startT - currentTime) * pixelsPerSecondLive;
+            const y2 = hitZoneY - (endT - currentTime) * pixelsPerSecondLive;
             const visualWidth = laneWidth * noteWidthScale;
             const destX = laneIdx * laneWidth + (laneWidth - visualWidth) / 2;
-            const destY = y - noteThicknessLive/2;
-            const destW = visualWidth; const destH = noteThicknessLive;
-            if (customNoteImage && customNoteRect.w > 0) {
-                ctxPrev.drawImage(customNoteImage, customNoteRect.x, customNoteRect.y, customNoteRect.w, customNoteRect.h, destX, destY, destW, destH);
+            if (seg.isLong) {
+                const startEdgeY = y1 + noteThicknessLive/2;
+                const endEdgeY = y2 - noteThicknessLive/2;
+                const destH = Math.max(noteThicknessLive, startEdgeY - endEdgeY);
+                if (customLongNoteImage && customLongNoteRect.w > 0) {
+                    draw9Slice(ctxPrev, customLongNoteImage, customLongNoteRect, destX, endEdgeY, visualWidth, destH);
+                } else {
+                    ctxPrev.fillStyle = LONG_NOTE_COLOR; ctxPrev.shadowBlur = 15; ctxPrev.shadowColor = LONG_NOTE_COLOR;
+                    ctxPrev.beginPath(); ctxPrev.roundRect(destX, endEdgeY, visualWidth, destH, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
+                }
             } else {
-                ctxPrev.fillStyle = NOTE_COLOR; ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
-                ctxPrev.beginPath(); ctxPrev.roundRect(destX, destY, destW, destH, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
+                const destY = y1 - noteThicknessLive/2;
+                if (customNoteImage && customNoteRect.w > 0) {
+                    ctxPrev.drawImage(customNoteImage, customNoteRect.x, customNoteRect.y, customNoteRect.w, customNoteRect.h, destX, destY, visualWidth, noteThicknessLive);
+                } else {
+                    ctxPrev.fillStyle = NOTE_COLOR; ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
+                    ctxPrev.beginPath(); ctxPrev.roundRect(destX, destY, visualWidth, noteThicknessLive, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
+                }
             }
-        }
+        });
     });
 }
 
@@ -962,10 +1103,7 @@ function updateTimeDisplay(time) {
 let lastFrameTime = 0;
 function renderLoop() {
     const currentTime = isPlaying ? (audioContext.currentTime - startTime) : pauseOffset;
-    drawWaveform(currentTime);
-    drawEditor(currentTime);
-    drawPreview(currentTime);
-    updateTimeDisplay(currentTime);
+    drawWaveform(currentTime); drawEditor(currentTime); drawPreview(currentTime); updateTimeDisplay(currentTime);
     if (isPlaying) {
         const noteLanes = lanes.filter(l => l.type === 'note');
         events.forEach(e => {
@@ -979,8 +1117,7 @@ function renderLoop() {
             }
         });
     }
-    lastFrameTime = currentTime;
-    requestAnimationFrame(renderLoop);
+    lastFrameTime = currentTime; requestAnimationFrame(renderLoop);
 }
 
 init();
