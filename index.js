@@ -1,4 +1,4 @@
-// --- Rhythm Studio: Professional Vfx Editor v3.5 (JS Edition) ---
+// --- Rhythm Studio: Professional Vfx Editor v3.8 (JS Edition) ---
 
 import { GoogleGenAI } from "@google/genai";
 
@@ -51,13 +51,20 @@ let gridSnap = 6;
 let pixelsPerSecondEditor = 300; 
 let pixelsPerSecondLive = 625;   
 let noteThicknessLive = 18;
+let noteWidthScale = 0.8; // 80%
+let vfxAlpha = 0.25;
 let isPlaying = false;
 let startTime = 0;
 let pauseOffset = 0;
 let audioOffset = 0; 
-let duration = 0;
+let duration = 300; // Default 5 mins for silent playback
 let nextId = 0;
 let isInvertedScroll = true;
+
+// Custom Assets
+let customBgImage = null;
+let customNoteImage = null;
+let customNoteRect = { x: 0, y: 0, w: 0, h: 0 }; // in IMAGE PIXELS
 
 // Modal State
 let editingLaneId = null;
@@ -70,8 +77,17 @@ let isMiddleDragging = false;
 let lastMouseY = 0;
 let isShiftPressed = false;
 
+// Sprite Editor State
+let spriteEditorActive = false;
+let dragTarget = null; // 'tl', 'tr', 'bl', 'br', 'center'
+let dragOffset = { x: 0, y: 0 };
+let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0 }; // in IMAGE PIXELS
+let displayScale = 1.0;
+
 // -- DOM Elements --
-let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
+let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
+let bgInput, noteSpriteInput, noteEditBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn, spriteUploadBtn;
+let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
 
 // -- Initialization --
 function init() {
@@ -86,6 +102,8 @@ function init() {
     zoomInput = document.getElementById('zoomInput');
     liveSpeedInput = document.getElementById('liveSpeedInput');
     thicknessInput = document.getElementById('thicknessInput');
+    widthScaleInput = document.getElementById('widthScaleInput');
+    vfxAlphaInput = document.getElementById('vfxAlphaInput');
     invertScrollToggle = document.getElementById('invertScrollToggle');
     snapSelect = document.getElementById('snapSelect');
     exportBtn = document.getElementById('exportBtn');
@@ -107,7 +125,25 @@ function init() {
     ctxEdit = editorCanvas.getContext('2d');
     ctxPrev = previewCanvas.getContext('2d');
 
-    // Create AudioContext only after explicit interaction check is usually better, but initialization here is fine.
+    // Sprite Elements
+    bgInput = document.getElementById('bgInput');
+    noteSpriteInput = document.getElementById('noteSpriteInput');
+    noteEditBtn = document.getElementById('noteEditBtn');
+    spriteModal = document.getElementById('spriteModal');
+    spriteEditorCanvas = document.getElementById('spriteEditorCanvas');
+    ctxSprite = spriteEditorCanvas.getContext('2d');
+    saveSpriteBtn = document.getElementById('saveSpriteBtn');
+    closeSpriteBtn = document.getElementById('closeSpriteBtn');
+    spriteUploadBtn = document.getElementById('spriteUploadBtn');
+
+    // Resizers
+    resizer1 = document.getElementById('resizer1');
+    resizer2 = document.getElementById('resizer2');
+    waveformPanel = document.getElementById('waveformPanel');
+    editorPanel = document.getElementById('editorPanel');
+    previewPanel = document.getElementById('previewPanel');
+    dragOverlay = document.getElementById('dragOverlay');
+
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
@@ -118,6 +154,39 @@ function init() {
     renderVfxOptions();
     handleResize();
     requestAnimationFrame(renderLoop);
+    
+    // Load default project and audio track
+    loadDefaultData();
+}
+
+async function loadDefaultData() {
+    try {
+        // Fetch project JSON
+        const projectRes = await fetch('data/sample.json');
+        if (projectRes.ok) {
+            const data = await projectRes.json();
+            lanes = data.lanes || [];
+            events = data.events || [];
+            audioOffset = data.audioOffset || 0;
+            bpm = data.bpm || 120;
+            bpmInput.value = bpm;
+            nextId = events.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+            updateOffsetDisplay();
+            renderLaneHeaders();
+        }
+
+        // Fetch audio file
+        trackNameLabel.textContent = "sample.mp3";
+        const audioRes = await fetch('audio/sample.mp3');
+        if (audioRes.ok) {
+            const arrayBuffer = await audioRes.arrayBuffer();
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            duration = audioBuffer.duration;
+            calculateWaveformPeaks();
+        }
+    } catch (err) {
+        console.warn("Default data load failed. App will initialize empty.", err);
+    }
 }
 
 // -- Helper Conversions --
@@ -132,7 +201,19 @@ function timeToTick(time) {
 function setupListeners() {
     audioInput.addEventListener('change', handleAudioUpload);
     projectInput.addEventListener('change', handleProjectImportFile);
-    
+    bgInput.addEventListener('change', handleBgUpload);
+    noteSpriteInput.addEventListener('change', handleNoteSpriteUpload);
+
+    noteEditBtn.addEventListener('click', () => {
+        if (customNoteImage) {
+            openSpriteEditor();
+        } else {
+            noteSpriteInput.click();
+        }
+    });
+
+    spriteUploadBtn.addEventListener('click', () => noteSpriteInput.click());
+
     playBtn.addEventListener('click', togglePlayback);
     exportBtn.addEventListener('click', exportProject);
     importBtn.addEventListener('click', () => projectInput.click());
@@ -143,12 +224,50 @@ function setupListeners() {
     zoomInput.addEventListener('input', () => { pixelsPerSecondEditor = parseInt(zoomInput.value); });
     liveSpeedInput.addEventListener('input', () => { pixelsPerSecondLive = parseInt(liveSpeedInput.value); });
     thicknessInput.addEventListener('input', () => { noteThicknessLive = parseInt(thicknessInput.value); });
+    widthScaleInput.addEventListener('input', () => { noteWidthScale = parseInt(widthScaleInput.value) / 100; });
+    vfxAlphaInput.addEventListener('input', () => { vfxAlpha = parseFloat(vfxAlphaInput.value); });
     invertScrollToggle.addEventListener('change', () => { isInvertedScroll = invertScrollToggle.checked; });
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
 
     document.getElementById('closeModalBtn')?.addEventListener('click', () => { vfxModal.style.display = 'none'; });
     document.getElementById('setNoteOption')?.addEventListener('click', () => setLaneType('note'));
     document.getElementById('deleteLaneBtn')?.addEventListener('click', deleteCurrentLane);
+
+    saveSpriteBtn.onclick = saveSpriteRect;
+    closeSpriteBtn.onclick = () => { spriteModal.style.display = 'none'; spriteEditorActive = false; };
+
+    // Column Resizing
+    const initResizer = (resizer, targetPanel, isRightSide) => {
+        let startX = 0;
+        let startBasis = 0;
+        
+        const onMouseMove = (e) => {
+            let dx = e.clientX - startX;
+            if (isRightSide) dx = -dx; 
+            const containerWidth = document.getElementById('workspaceLayout').clientWidth;
+            const newBasis = ((startBasis + dx) / containerWidth) * 100;
+            targetPanel.style.flexBasis = `${Math.max(5, Math.min(80, newBasis))}%`;
+            handleResize();
+        };
+
+        const onMouseUp = () => {
+            resizer.classList.remove('dragging');
+            dragOverlay.style.display = 'none';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        resizer.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startBasis = targetPanel.getBoundingClientRect().width;
+            resizer.classList.add('dragging');
+            dragOverlay.style.display = 'block';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    };
+    initResizer(resizer1, waveformPanel, false);
+    initResizer(resizer2, previewPanel, true);
 
     window.addEventListener('keydown', (e) => { if (e.key === 'Shift') isShiftPressed = true; });
     window.addEventListener('keyup', (e) => { if (e.key === 'Shift') isShiftPressed = false; });
@@ -157,10 +276,12 @@ function setupListeners() {
         if (e.button === 0) isLeftDragging = false;
         if (e.button === 2) isRightDragging = false;
         if (e.button === 1) isMiddleDragging = false;
+        // Global Sprite Mouseup
+        if (spriteEditorActive) dragTarget = null;
     });
 
     editorCanvas.addEventListener('mousedown', (e) => {
-        if (vfxModal.style.display === 'block') return;
+        if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
         if (e.button === 0) { isLeftDragging = true; tryPlaceEvent(); }
         if (e.button === 2) { isRightDragging = true; tryRemoveEvent(); }
         if (e.button === 1) { isMiddleDragging = true; lastMouseY = e.clientY; e.preventDefault(); }
@@ -181,7 +302,7 @@ function setupListeners() {
 
         ghostEvent = laneId !== undefined ? { laneId, tick: snappedTick } : null;
 
-        if (vfxModal.style.display === 'block') return;
+        if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
 
         if (isLeftDragging) tryPlaceEvent();
         if (isRightDragging) tryRemoveEvent();
@@ -197,19 +318,87 @@ function setupListeners() {
 
     editorCanvas.addEventListener('mouseleave', () => { ghostEvent = null; });
 
+    // Sprite Editor Robust Mouse Logic
+    const getHandleAt = (mx, my) => {
+        const r = currentSpriteRect;
+        const hSize = 15 / displayScale; // Larger hitzone
+        
+        if (Math.abs(mx - r.x) < hSize && Math.abs(my - r.y) < hSize) return 'tl';
+        if (Math.abs(mx - (r.x + r.w)) < hSize && Math.abs(my - r.y) < hSize) return 'tr';
+        if (Math.abs(mx - r.x) < hSize && Math.abs(my - (r.y + r.h)) < hSize) return 'bl';
+        if (Math.abs(mx - (r.x + r.w)) < hSize && Math.abs(my - (r.y + r.h)) < hSize) return 'br';
+        if (mx > r.x && mx < r.x + r.w && my > r.y && my < r.y + r.h) return 'center';
+        return null;
+    };
+
+    spriteEditorCanvas.addEventListener('mousedown', (e) => {
+        if (!spriteEditorActive) return;
+        const rect = spriteEditorCanvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) / displayScale;
+        const my = (e.clientY - rect.top) / displayScale;
+        dragTarget = getHandleAt(mx, my);
+        if (dragTarget === 'center') {
+            dragOffset = { x: mx - currentSpriteRect.x, y: my - currentSpriteRect.y };
+        }
+    });
+
+    // Use window for mousemove to allow dragging outside the canvas
+    window.addEventListener('mousemove', (e) => {
+        if (!spriteEditorActive || !dragTarget) return;
+        const rect = spriteEditorCanvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) / displayScale;
+        const my = (e.clientY - rect.top) / displayScale;
+
+        const s = currentSpriteRect;
+        if (dragTarget === 'tl') {
+            const dx = mx - s.x; const dy = my - s.y;
+            s.x = mx; s.y = my; s.w -= dx; s.h -= dy;
+        } else if (dragTarget === 'tr') {
+            const dy = my - s.y;
+            s.w = mx - s.x; s.y = my; s.h -= dy;
+        } else if (dragTarget === 'bl') {
+            const dx = mx - s.x;
+            s.x = mx; s.w -= dx; s.h = my - s.y;
+        } else if (dragTarget === 'br') {
+            s.w = mx - s.x; s.h = my - s.y;
+        } else if (dragTarget === 'center') {
+            s.x = mx - dragOffset.x;
+            s.y = my - dragOffset.y;
+        }
+        // Constraint & Clamp within Image Bounds
+        s.x = Math.max(0, Math.min(customNoteImage.width - 10, s.x));
+        s.y = Math.max(0, Math.min(customNoteImage.height - 10, s.y));
+        s.w = Math.min(customNoteImage.width - s.x, Math.max(10, s.w));
+        s.h = Math.min(customNoteImage.height - s.y, Math.max(10, s.h));
+        
+        renderSpriteEditor();
+    });
+
+    spriteEditorCanvas.addEventListener('mousemove', (e) => {
+        if (!spriteEditorActive || dragTarget) return;
+        const rect = spriteEditorCanvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) / displayScale;
+        const my = (e.clientY - rect.top) / displayScale;
+        const handle = getHandleAt(mx, my);
+        if (handle === 'tl' || handle === 'br') spriteEditorCanvas.style.cursor = 'nwse-resize';
+        else if (handle === 'tr' || handle === 'bl') spriteEditorCanvas.style.cursor = 'nesw-resize';
+        else if (handle === 'center') spriteEditorCanvas.style.cursor = 'move';
+        else spriteEditorCanvas.style.cursor = 'default';
+    });
+
     let isScrubbing = false;
     waveformCanvas.addEventListener('mousedown', (e) => { 
-        if (vfxModal.style.display === 'block') return;
+        if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
         isScrubbing = true; 
         lastMouseY = e.clientY; 
     });
     window.addEventListener('mouseup', () => isScrubbing = false);
     waveformCanvas.addEventListener('mousemove', (e) => {
-        if (vfxModal.style.display === 'block' || !isScrubbing || !audioBuffer) return;
+        if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block' || !isScrubbing) return;
         const currentY = e.clientY;
         const deltaY = currentY - lastMouseY;
         const timeDelta = deltaY / pixelsPerSecondEditor;
-        if (isShiftPressed) {
+        if (isShiftPressed && audioBuffer) {
             audioOffset -= timeDelta; 
             updateOffsetDisplay();
         } else {
@@ -223,12 +412,112 @@ function setupListeners() {
     editorCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('resize', handleResize);
     window.addEventListener('wheel', (e) => {
-        if (vfxModal.style.display === 'block') return;
+        if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
         const direction = isInvertedScroll ? 1 : -1;
         const delta = e.deltaY * 0.002 * direction;
         pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset + delta));
         if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
     }, { passive: true });
+}
+
+// -- Assets Handling --
+function handleBgUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => { customBgImage = img; };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleNoteSpriteUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            customNoteImage = img;
+            openSpriteEditor();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function openSpriteEditor() {
+    spriteModal.style.display = 'block';
+    spriteEditorActive = true;
+    
+    const container = spriteEditorCanvas.parentElement;
+    const cWidth = container.clientWidth - 40;
+    const cHeight = container.clientHeight - 40;
+    
+    // Scale image to fit within modal bounds without stretching
+    displayScale = Math.min(cWidth / customNoteImage.width, cHeight / customNoteImage.height);
+    spriteEditorCanvas.width = customNoteImage.width * displayScale;
+    spriteEditorCanvas.height = customNoteImage.height * displayScale;
+    
+    // Default rect in IMAGE SPACE
+    if (customNoteRect.w === 0) {
+        const w = customNoteImage.width * 0.8;
+        const h = customNoteImage.height * 0.2;
+        currentSpriteRect = {
+            x: (customNoteImage.width - w) / 2,
+            y: (customNoteImage.height - h) / 2,
+            w: w,
+            h: h
+        };
+    } else {
+        currentSpriteRect = { ...customNoteRect };
+    }
+    renderSpriteEditor();
+}
+
+function renderSpriteEditor() {
+    const { width, height } = spriteEditorCanvas;
+    ctxSprite.clearRect(0, 0, width, height);
+    // Draw base image accurately scaled
+    ctxSprite.drawImage(customNoteImage, 0, 0, width, height);
+    
+    // Current rect is in IMAGE PIXELS, scale for DISPLAY coordinate mapping
+    const rx = currentSpriteRect.x * displayScale;
+    const ry = currentSpriteRect.y * displayScale;
+    const rw = currentSpriteRect.w * displayScale;
+    const rh = currentSpriteRect.h * displayScale;
+    
+    // Darken exterior to focus selection
+    ctxSprite.fillStyle = 'rgba(0,0,0,0.7)';
+    ctxSprite.fillRect(0, 0, width, ry);
+    ctxSprite.fillRect(0, ry + rh, width, height - (ry + rh));
+    ctxSprite.fillRect(0, ry, rx, rh);
+    ctxSprite.fillRect(rx + rw, ry, width - (rx + rw), rh);
+    
+    // Selection boundary stroke
+    ctxSprite.strokeStyle = '#ff71ce';
+    ctxSprite.lineWidth = 2;
+    ctxSprite.strokeRect(rx, ry, rw, rh);
+    
+    // Draggable corners (Handles)
+    ctxSprite.fillStyle = '#fff';
+    ctxSprite.strokeStyle = '#000';
+    ctxSprite.lineWidth = 1;
+    const hSize = 5;
+    [ [rx, ry], [rx + rw, ry], [rx, ry + rh], [rx + rw, ry + rh] ].forEach(([hx, hy]) => {
+        ctxSprite.beginPath();
+        ctxSprite.arc(hx, hy, hSize, 0, Math.PI * 2);
+        ctxSprite.fill();
+        ctxSprite.stroke();
+    });
+}
+
+function saveSpriteRect() {
+    customNoteRect = { ...currentSpriteRect };
+    spriteModal.style.display = 'none';
+    spriteEditorActive = false;
 }
 
 // -- Lane Management --
@@ -368,7 +657,6 @@ async function handleAudioUpload(e) {
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         duration = audioBuffer.duration;
         calculateWaveformPeaks();
-        // Resume context on first real upload to be safe
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
@@ -394,7 +682,6 @@ function calculateWaveformPeaks() {
 }
 
 async function togglePlayback() {
-    if (!audioBuffer) return;
     if (audioContext.state === 'suspended') {
         await audioContext.resume();
     }
@@ -402,17 +689,20 @@ async function togglePlayback() {
 }
 
 function startPlayback() {
-    audioSource = audioContext.createBufferSource();
-    audioSource.buffer = audioBuffer;
-    audioSource.connect(gainNode);
-    const audioTimeNow = Math.max(0, pauseOffset - audioOffset);
-    const whenToStart = audioContext.currentTime + Math.max(0, audioOffset - pauseOffset);
+    if (audioBuffer) {
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(gainNode);
+        const audioTimeNow = Math.max(0, pauseOffset - audioOffset);
+        const whenToStart = audioContext.currentTime + Math.max(0, audioOffset - pauseOffset);
+        audioSource.start(whenToStart, audioTimeNow);
+        audioSource.onended = () => { if (isPlaying) pausePlayback(true); };
+    }
+    
     startTime = audioContext.currentTime - pauseOffset;
-    audioSource.start(whenToStart, audioTimeNow);
     isPlaying = true;
     playIcon.classList.add('hidden');
     pauseIcon.classList.remove('hidden');
-    audioSource.onended = () => { if (isPlaying) pausePlayback(true); };
 }
 
 function pausePlayback(atEnd = false) {
@@ -469,14 +759,14 @@ function renderVFX(ctx, width, height) {
             case 'sparkle1':
             case 'sparkle2':
             case 'sparkle3':
-                const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 40 : 60;
+                const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 50 : 100;
                 for (let i = 0; i < density; i++) {
                     const seed = i * 1234.56;
                     const x = ((Math.sin(seed) + 1) / 2) * width;
                     const y = ((Math.cos(seed * 0.8) + 1) / 2) * height;
                     const flicker = (Math.sin(now * 0.005 + seed) + 1) / 2;
                     const size = (flicker * 3) + 1;
-                    ctx.globalAlpha = flicker * 0.8;
+                    ctx.globalAlpha = flicker * 0.8 * vfxAlpha;
                     ctx.fillStyle = "#fff";
                     ctx.shadowBlur = 10;
                     ctx.shadowColor = "#fff";
@@ -500,7 +790,7 @@ function renderVFX(ctx, width, height) {
                     const x = (Math.sin(i * 555) * 0.45 + 0.5) * width + Math.sin(now * 0.002 + i) * 30;
                     const y = height * (1 - t);
                     const size = (1 - t) * (vfxType === 'flames1' ? 15 : 25);
-                    const alpha = (1 - t) * 0.3;
+                    const alpha = (1 - t) * 0.6 * vfxAlpha;
                     const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
                     grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
                     grad.addColorStop(0.2, `rgba(255, 220, 0, ${alpha})`);
@@ -513,7 +803,7 @@ function renderVFX(ctx, width, height) {
             case 'confetti1':
             case 'confetti2':
             case 'confetti3':
-                const cCount = vfxType === 'confetti1' ? 20 : vfxType === 'confetti2' ? 40 : 80;
+                const cCount = vfxType === 'confetti1' ? 40 : vfxType === 'confetti2' ? 80 : 160;
                 const colors = ['#ff71ce', '#01cdfe', '#05ffa1', '#b967ff', '#fffb96'];
                 for (let i = 0; i < cCount; i++) {
                     const t = (now * 0.0004 + i * 0.13) % 1;
@@ -522,7 +812,7 @@ function renderVFX(ctx, width, height) {
                     const rotate = now * 0.01 + i;
                     const flip = Math.sin(now * 0.008 + i);
                     ctx.fillStyle = colors[i % colors.length];
-                    ctx.globalAlpha = 0.25;
+                    ctx.globalAlpha = 0.9 * vfxAlpha;
                     ctx.save();
                     ctx.translate(x, y);
                     ctx.rotate(rotate);
@@ -537,7 +827,7 @@ function renderVFX(ctx, width, height) {
 
     activeBurstVFX = activeBurstVFX.filter(v => v.active);
     activeBurstVFX.forEach(vfx => {
-        const dur = 600;
+        const dur = 700;
         vfx.progress = (now - vfx.startTime) / dur;
         if (vfx.progress >= 1) { vfx.active = false; return; }
         const p = vfx.progress;
@@ -547,8 +837,8 @@ function renderVFX(ctx, width, height) {
             case 'heart1':
             case 'heart2':
             case 'heart3':
-                const hCount = vfx.type === 'heart1' ? 6 : vfx.type === 'heart2' ? 12 : 24;
-                ctx.globalAlpha = 1 - p;
+                const hCount = vfx.type === 'heart1' ? 8 : vfx.type === 'heart2' ? 16 : 32;
+                ctx.globalAlpha = (1 - p) * vfxAlpha;
                 for (let i = 0; i < hCount; i++) {
                     const seed = i + (vfx.randomSeed * 100);
                     const angle = (i / hCount) * Math.PI * 2;
@@ -571,7 +861,7 @@ function renderVFX(ctx, width, height) {
                     const gx = ((Math.sin(seed) + 1)/2) * width;
                     const gy = ((Math.cos(seed * 0.7) + 1)/2) * height;
                     const gAlpha = (1 - p) * ((Math.sin(now * 0.02 + i) + 1)/2);
-                    ctx.globalAlpha = gAlpha;
+                    ctx.globalAlpha = gAlpha * vfxAlpha;
                     ctx.fillStyle = "#fff";
                     ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
                     ctx.beginPath(); ctx.arc(gx, gy, Math.random() * 3 + 1, 0, Math.PI * 2); ctx.fill();
@@ -582,44 +872,36 @@ function renderVFX(ctx, width, height) {
             case 'explode3':
                 const maxR = vfx.type === 'explode1' ? 150 : vfx.type === 'explode2' ? 300 : 500;
                 ctx.lineWidth = 3;
-                ctx.strokeStyle = `rgba(255, 255, 255, ${1 - p})`;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - p) * vfxAlpha})`;
                 ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.stroke();
                 const gradE = ctx.createRadialGradient(width/2, 0, 0, width/2, 0, maxR * easeOut);
                 gradE.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                gradE.addColorStop(1, `rgba(255, 255, 255, ${(1 - p) * 0.3})`);
+                gradE.addColorStop(1, `rgba(255, 255, 255, ${(1 - p) * 0.3 * vfxAlpha})`);
                 ctx.fillStyle = gradE;
                 ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.fill();
                 break;
             case 'light1':
             case 'light2':
             case 'light3':
-                const beams = vfx.type === 'light1' ? 6 : vfx.type === 'light2' ? 9 : 12
-                ctx.globalAlpha = (1 - p) * 0.15;
+                const beams = 12;
+                ctx.globalAlpha = (1 - p) * 0.5 * vfxAlpha;
                 for (let i = 0; i < beams; i++) {
                     const angle = (Math.PI / beams) * i + (p * 0.5);
                     ctx.beginPath();
                     ctx.moveTo(width/2, 0);
                     ctx.lineTo(width/2 + Math.cos(angle) * width * 2, Math.sin(angle) * height);
-                    ctx.lineTo(width/2 + Math.cos(angle + 0.05) * width * 2, Math.sin(angle + 0.05) * height);
+                    ctx.lineTo(width/2 + Math.cos(angle + 0.1) * width * 2, Math.sin(angle + 0.1) * height);
                     ctx.fillStyle = '#fff';
                     ctx.fill();
                 }
                 break;
             case 'wipeDown':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4 * vfxAlpha})`;
                 ctx.fillRect(0, 0, width, height * easeOut);
                 break;
             case 'wipeUp':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4 * vfxAlpha})`;
                 ctx.fillRect(0, height * (1 - easeOut), width, height);
-                break;
-            case 'wipeLeft':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
-                ctx.fillRect(0, 0, width * easeOut, height);
-                break;
-            case 'wipeRight':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4})`;
-                ctx.fillRect(width * (1 - easeOut), 0, width * easeOut, height);
                 break;
         }
         ctx.restore();
@@ -630,7 +912,7 @@ function renderVFX(ctx, width, height) {
         ex.particles.forEach(pt => {
             pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.12; pt.alpha *= 0.95;
             ctx.save();
-            ctx.globalAlpha = pt.alpha;
+            ctx.globalAlpha = pt.alpha * vfxAlpha;
             ctx.fillStyle = pt.color;
             ctx.shadowBlur = 8; ctx.shadowColor = pt.color;
             ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2); ctx.fill();
@@ -702,10 +984,21 @@ function drawPreview(currentTime) {
     const { width, height } = previewCanvas;
     const hitZoneY = height * 0.8;
     ctxPrev.clearRect(0, 0, width, height);
+    
+    if (customBgImage) {
+        const scale = Math.max(width / customBgImage.width, height / customBgImage.height);
+        const x = (width / 2) - (customBgImage.width / 2) * scale;
+        const y = (height / 2) - (customBgImage.height / 2) * scale;
+        ctxPrev.drawImage(customBgImage, x, y, customBgImage.width * scale, customBgImage.height * scale);
+        ctxPrev.fillStyle = 'rgba(0,0,0,0.3)';
+        ctxPrev.fillRect(0,0,width,height);
+    }
+
     renderVFX(ctxPrev, width, height);
     const noteLanes = lanes.filter(l => l.type === 'note');
     if (noteLanes.length === 0) return;
     const laneWidth = width / noteLanes.length;
+    
     activeExplosions.forEach(ex => {
         const laneIdx = noteLanes.findIndex(l => l.id === ex.laneId);
         if (laneIdx !== -1) {
@@ -718,6 +1011,7 @@ function drawPreview(currentTime) {
             ctxPrev.fillRect(laneIdx * laneWidth, 0, laneWidth, height);
         }
     });
+
     const timeMaxInView = currentTime + (hitZoneY / pixelsPerSecondLive);
     events.forEach(e => {
         const laneIdx = noteLanes.findIndex(l => l.id === e.laneId);
@@ -725,10 +1019,26 @@ function drawPreview(currentTime) {
         const noteTime = tickToTime(e.tick);
         if (noteTime >= currentTime && noteTime <= timeMaxInView) {
             const y = hitZoneY - (noteTime - currentTime) * pixelsPerSecondLive;
-            ctxPrev.fillStyle = NOTE_COLOR;
-            ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
-            ctxPrev.beginPath(); ctxPrev.roundRect(laneIdx * laneWidth + 12, y - noteThicknessLive/2, laneWidth - 24, noteThicknessLive, 4); ctxPrev.fill();
-            ctxPrev.shadowBlur = 0;
+            
+            // Scalable Note Width
+            const visualWidth = laneWidth * noteWidthScale;
+            const destX = laneIdx * laneWidth + (laneWidth - visualWidth) / 2;
+            const destY = y - noteThicknessLive/2;
+            const destW = visualWidth;
+            const destH = noteThicknessLive;
+
+            if (customNoteImage && customNoteRect.w > 0) {
+                ctxPrev.drawImage(
+                    customNoteImage, 
+                    customNoteRect.x, customNoteRect.y, customNoteRect.w, customNoteRect.h,
+                    destX, destY, destW, destH
+                );
+            } else {
+                ctxPrev.fillStyle = NOTE_COLOR;
+                ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
+                ctxPrev.beginPath(); ctxPrev.roundRect(destX, destY, destW, destH, 4); ctxPrev.fill();
+                ctxPrev.shadowBlur = 0;
+            }
         }
     });
 }

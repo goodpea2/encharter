@@ -51,28 +51,57 @@
             width: 100%;
         }
 
-        .waveform-view-panel {
+        .view-panel-container {
             display: flex;
             flex-direction: column;
             height: 100%;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            flex: 0 0 15%;
             min-width: 80px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .view-panel {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            flex: 1;
-            min-width: 0;
+        #waveformPanel { flex: 0 0 15%; }
+        #editorPanel { flex: 1 1 0%; }
+        #previewPanel { flex: 0 0 35%; }
+
+        .resizer {
+            width: 8px;
+            margin: 0 -4px;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 60;
+            transition: background 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .resizer:after {
+            content: '';
+            position: absolute;
+            left: 50%; top: 0; bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-50%);
+        }
+        .resizer:hover:after {
+            background: #ff71ce;
+            box-shadow: 0 0 10px #ff71ce;
+            width: 2px;
+        }
+        .resizer.dragging:after {
+            background: #ff71ce;
+            width: 3px;
         }
 
         canvas { 
             display: block; 
             width: 100% !important; 
             height: 100% !important; 
+        }
+
+        #spriteEditorCanvas {
+            width: auto !important;
+            height: auto !important;
+            max-width: 100%;
+            max-height: 100%;
         }
 
         input[type="range"] {
@@ -101,7 +130,7 @@
             cursor: pointer;
         }
 
-        .vfx-modal {
+        .vfx-modal, .sprite-modal {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -112,9 +141,11 @@
             border-radius: 12px;
             z-index: 1000;
             display: none;
-            width: 340px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
+
+        .vfx-modal { width: 340px; }
+        .sprite-modal { width: 95vw; max-width: 900px; }
 
         .lane-header {
             display: flex;
@@ -185,6 +216,14 @@
         }
         input:checked + .slider { background-color: #ff71ce; }
         input:checked + .slider:before { transform: translateX(14px); }
+
+        #dragOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 9999;
+            cursor: col-resize;
+            display: none;
+        }
     </style>
 <script type="importmap">
 {
@@ -195,6 +234,8 @@
 </script>
 </head>
 <body class="bg-black">
+    <div id="dragOverlay"></div>
+
     <header class="h-14 flex-shrink-0 flex items-center justify-between px-4 border-b border-white/5 bg-[#0a0a0c] z-50">
         <div class="flex items-center gap-3">
             <div class="p-1.5 bg-pink-500 rounded shadow-lg">
@@ -224,8 +265,8 @@
     </header>
 
     <main class="flex-grow relative overflow-hidden">
-        <div class="workspace-layout">
-            <div id="waveformPanel" class="waveform-view-panel">
+        <div class="workspace-layout" id="workspaceLayout">
+            <div id="waveformPanel" class="view-panel-container">
                 <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center justify-between shrink-0 z-10 overflow-hidden">
                     <span class="truncate">WAVE</span>
                     <div class="flex gap-2">
@@ -238,7 +279,9 @@
                 </div>
             </div>
 
-            <div id="editorPanel" class="view-panel bg-white/[0.01]">
+            <div class="resizer" id="resizer1"></div>
+
+            <div id="editorPanel" class="view-panel-container bg-white/[0.01]">
                 <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center justify-between shrink-0 z-10">
                     <div class="flex items-center gap-2">
                         <button id="addLaneBtn" class="w-5 h-5 bg-white/5 hover:bg-pink-500/20 border border-white/10 flex items-center justify-center rounded transition-all">+</button>
@@ -264,9 +307,17 @@
                 </div>
             </div>
 
-            <div id="previewPanel" class="view-panel">
-                <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center shrink-0 z-10">
-                    Live Preview
+            <div class="resizer" id="resizer2"></div>
+
+            <div id="previewPanel" class="view-panel-container">
+                <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center justify-between shrink-0 z-10">
+                    <span>Live Preview</span>
+                    <div class="flex gap-2">
+                        <input type="file" id="bgInput" accept="image/*" class="hidden">
+                        <input type="file" id="noteSpriteInput" accept="image/*" class="hidden">
+                        <button onclick="document.getElementById('bgInput').click()" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">BG</button>
+                        <button id="noteEditBtn" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">NOTE</button>
+                    </div>
                 </div>
                 <div class="editor-container">
                     <canvas id="previewCanvas"></canvas>
@@ -306,6 +357,22 @@
         </button>
     </div>
 
+    <!-- Sprite Editor Modal -->
+    <div id="spriteModal" class="sprite-modal">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest">Sprite Boundary Editor</h3>
+            <div class="flex gap-2">
+                <button id="spriteUploadBtn" class="px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] uppercase font-bold text-white hover:bg-pink-500/20">Upload New</button>
+                <button id="saveSpriteBtn" class="px-3 py-1 bg-pink-500 rounded text-[10px] uppercase font-bold text-white shadow-lg">Save</button>
+                <button id="closeSpriteBtn" class="px-3 py-1 bg-white/5 rounded text-[10px] uppercase font-bold text-white/50">&times;</button>
+            </div>
+        </div>
+        <div class="relative bg-[#050507] rounded-lg overflow-hidden border border-white/10 flex items-center justify-center p-4" style="height: 70vh;">
+            <canvas id="spriteEditorCanvas" class="shadow-2xl"></canvas>
+        </div>
+        <p class="text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag the boundary corners to set the note appearance. The selected slice will be stretched into the game lanes.</p>
+    </div>
+
     <footer class="h-20 flex-shrink-0 bg-[#0a0a0c] border-t border-white/10 px-4 flex items-center justify-between gap-4 z-50 overflow-hidden">
         <div class="flex items-center gap-4 lg:gap-8 flex-1 overflow-x-auto no-scrollbar">
             <div class="flex flex-col gap-0.5 shrink-0">
@@ -321,8 +388,16 @@
                 <input type="range" id="liveSpeedInput" min="200" max="2500" step="50" value="625" class="w-16 lg:w-24 accent-pink-400">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
-                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Thickness</label>
-                <input type="range" id="thicknessInput" min="4" max="64" step="2" value="18" class="w-16 accent-cyan-400">
+                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Note Height</label>
+                <input type="range" id="thicknessInput" min="4" max="192" step="2" value="18" class="w-16 accent-cyan-400">
+            </div>
+            <div class="flex flex-col gap-0.5 shrink-0">
+                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Note Width</label>
+                <input type="range" id="widthScaleInput" min="10" max="100" step="1" value="80" class="w-16 accent-pink-400">
+            </div>
+            <div class="flex flex-col gap-0.5 shrink-0">
+                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Vfx Alpha</label>
+                <input type="range" id="vfxAlphaInput" min="0" max="1" step="0.05" value="0.25" class="w-16 lg:w-20 accent-cyan-400">
             </div>
             <div class="hidden sm:flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Invert</label>
@@ -332,7 +407,7 @@
                 </label>
             </div>
             <div class="hidden md:flex flex-col gap-0.5 shrink-0">
-                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Gain</label>
+                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Volume</label>
                 <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.5" class="w-12 lg:w-16 accent-pink-400">
             </div>
         </div>
