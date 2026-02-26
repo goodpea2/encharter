@@ -28,7 +28,7 @@ export function renderSpriteEditor(ctx, img, rect, displayScale, mode, canvasWid
     const rw = rect.w * displayScale;
     const rh = rect.h * displayScale;
     
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = 'rgba(0,0,0,1)';
     ctx.fillRect(0, 0, canvasWidth, ry);
     ctx.fillRect(0, ry + rh, canvasWidth, canvasHeight - (ry + rh));
     ctx.fillRect(0, ry, rx, rh);

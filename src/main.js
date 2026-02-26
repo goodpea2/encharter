@@ -730,7 +730,6 @@ function drawPreview(currentTime) {
         const scale = Math.max(width / customBgImage.width, height / customBgImage.height);
         const x = (width / 2) - (customBgImage.width / 2) * scale; const y = (height / 2) - (customBgImage.height / 2) * scale;
         ctxPrev.drawImage(customBgImage, x, y, customBgImage.width * scale, customBgImage.height * scale);
-        ctxPrev.fillStyle = 'rgba(0,0,0,0.3)'; ctxPrev.fillRect(0,0,width,height);
     }
     
     renderAllVFX(ctxPrev, width, height, performance.now(), loopingVFX, activeBurstVFX, activeExplosions, vfxAlpha);
