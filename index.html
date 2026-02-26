@@ -247,6 +247,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-black">
     <div id="dragOverlay"></div>
@@ -412,6 +413,10 @@
                 <input type="range" id="liveSpeedInput" min="200" max="2500" step="50" value="625" class="w-16 lg:w-24 accent-pink-400">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
+                <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Speed Lerp</label>
+                <input type="range" id="speedLerpInput" min="0" max="2" step="0.05" value="0" class="w-16 lg:w-24 accent-cyan-400">
+            </div>
+            <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Note Height</label>
                 <input type="range" id="thicknessInput" min="4" max="192" step="2" value="18" class="w-16 accent-cyan-400">
             </div>
@@ -442,6 +447,6 @@
         </button>
     </footer>
 
-    <script type="module" src="index.js"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>

@@ -1,39 +1,20 @@
-// --- Rhythm Studio: Professional Vfx Editor v4.2 (JS Edition) ---
-
-import { GoogleGenAI } from "@google/genai";
-
-// -- Constants --
-const TICKS_PER_BAR = 96; 
-const BEATS_PER_BAR = 4;   
-const NOTE_COLOR = '#ff71ce';
-const LONG_NOTE_COLOR = '#fbbf24'; // Amber-400
-const VFX_COLOR = '#06b6d4';
-const GHOST_NOTE_COLOR = 'rgba(255, 113, 206, 0.25)';
-const GRID_COLOR = 'rgba(255, 255, 255, 0.05)';
-const BEAT_LINE_COLOR = 'rgba(255, 255, 255, 0.15)';
-const BAR_LINE_COLOR = 'rgba(255, 255, 255, 0.45)';
-const WAVEFORM_COLOR = '#fce4ec'; 
-const HOLD_GAP_THRESHOLD = 3; // 1/32 bar (96 / 32)
-
-const BURST_VFX = [
-    'explode1', 'explode2', 'explode3', 
-    'wipeUp', 'wipeDown', 'wipeLeft', 'wipeRight', 
-    'light1', 'light2', 'light3',
-    'glitter1', 'glitter2', 'glitter3',
-    'heart1', 'heart2', 'heart3'
-];
-const IDLE_VFX = [
-    'sparkle1', 'sparkle2', 'sparkle3',
-    'flames1', 'flames2', 'flames3',
-    'confetti1', 'confetti2', 'confetti3'
-];
+import { 
+    TICKS_PER_BAR, BEATS_PER_BAR, NOTE_COLOR, LONG_NOTE_COLOR, VFX_COLOR, 
+    GHOST_NOTE_COLOR, GRID_COLOR, BEAT_LINE_COLOR, BAR_LINE_COLOR, 
+    WAVEFORM_COLOR, HOLD_GAP_THRESHOLD, BURST_VFX, IDLE_VFX 
+} from './constants.js';
+import { lerp } from './utils/math.js';
+import { tickToTime, timeToTick } from './utils/time.js';
+import { draw9Slice } from './utils/rendering.js';
+import { getNoteSegments } from './utils/noteUtils.js';
+import { calculateWaveformPeaks } from './utils/waveform.js';
+import { AudioEngine } from './core/audioEngine.js';
+import { renderAllVFX } from './vfx/vfxManager.js';
+import { createNoteExplosion } from './vfx/Explosions.js';
+import { getHandleAt, renderSpriteEditor } from './core/spriteEditor.js';
 
 // -- App State --
-let audioContext;
-let audioBuffer = null;
-let audioSource = null;
-let gainNode;
-
+let audioEngine;
 let waveformPeaks = null;
 const PEAK_RESOLUTION = 10000; 
 
@@ -52,6 +33,7 @@ let bpm = 120;
 let gridSnap = 6; 
 let pixelsPerSecondEditor = 300; 
 let pixelsPerSecondLive = 625;   
+let speedLerp = 0;
 let noteThicknessLive = 18;
 let noteWidthScale = 0.8; 
 let vfxAlpha = 0.25;
@@ -90,7 +72,7 @@ let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
 let displayScale = 1.0;
 
 // -- DOM Elements --
-let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
+let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
 let bgInput, noteSpriteInput, longNoteSpriteInput, noteEditBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn, spriteUploadBtn, clearTextureBtn;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
 let tabNormalBtn, tabLongBtn, hintNormal, hintLong;
@@ -110,6 +92,7 @@ function init() {
     thicknessInput = document.getElementById('thicknessInput');
     widthScaleInput = document.getElementById('widthScaleInput');
     vfxAlphaInput = document.getElementById('vfxAlphaInput');
+    speedLerpInput = document.getElementById('speedLerpInput');
     invertScrollToggle = document.getElementById('invertScrollToggle');
     snapSelect = document.getElementById('snapSelect');
     exportBtn = document.getElementById('exportBtn');
@@ -156,10 +139,7 @@ function init() {
     previewPanel = document.getElementById('previewPanel');
     dragOverlay = document.getElementById('dragOverlay');
 
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    gainNode = audioContext.createGain();
-    gainNode.connect(audioContext.destination);
-    gainNode.gain.value = 0.5;
+    audioEngine = new AudioEngine();
 
     setupListeners();
     renderLaneHeaders();
@@ -187,54 +167,15 @@ async function loadDefaultData() {
         if (audioRes.ok) {
             trackNameLabel.textContent = "sample.mp3";
             const arrayBuffer = await audioRes.arrayBuffer();
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const audioBuffer = await audioEngine.decodeAudio(arrayBuffer);
             duration = audioBuffer.duration;
-            calculateWaveformPeaks();
+            waveformPeaks = calculateWaveformPeaks(audioBuffer, PEAK_RESOLUTION);
         } else {
             trackNameLabel.textContent = "Silent Mode";
         }
     } catch (err) {
         console.warn("Init load failed.", err);
     }
-}
-
-function tickToTime(tick) {
-    return tick / ((TICKS_PER_BAR * bpm) / 240);
-}
-
-function timeToTick(time) {
-    return Math.round(time * ((TICKS_PER_BAR * bpm) / 240));
-}
-
-function getNoteSegments(laneId) {
-    const laneEvents = events.filter(e => e.laneId === laneId).sort((a, b) => a.tick - b.tick);
-    if (laneEvents.length === 0) return [];
-
-    const segments = [];
-    let currentSegment = {
-        startTick: laneEvents[0].tick,
-        endTick: laneEvents[0].tick,
-        laneId: laneId,
-        eventIds: [laneEvents[0].id]
-    };
-
-    for (let i = 1; i < laneEvents.length; i++) {
-        const e = laneEvents[i];
-        if (e.tick - currentSegment.endTick <= HOLD_GAP_THRESHOLD) {
-            currentSegment.endTick = e.tick;
-            currentSegment.eventIds.push(e.id);
-        } else {
-            segments.push({ ...currentSegment, isLong: currentSegment.eventIds.length > 1 });
-            currentSegment = {
-                startTick: e.tick,
-                endTick: e.tick,
-                laneId: laneId,
-                eventIds: [e.id]
-            };
-        }
-    }
-    segments.push({ ...currentSegment, isLong: currentSegment.eventIds.length > 1 });
-    return segments;
 }
 
 function setupListeners() {
@@ -263,7 +204,7 @@ function setupListeners() {
             customLongNoteImage = null;
             customLongNoteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
         }
-        renderSpriteEditor();
+        renderSpriteEditorInternal();
     });
 
     playBtn.addEventListener('click', togglePlayback);
@@ -272,12 +213,13 @@ function setupListeners() {
     addLaneBtn.addEventListener('click', addNewLane);
 
     bpmInput.addEventListener('change', () => { bpm = parseInt(bpmInput.value) || 120; });
-    volumeSlider.addEventListener('input', () => { gainNode.gain.value = parseFloat(volumeSlider.value); });
+    volumeSlider.addEventListener('input', () => { audioEngine.setVolume(parseFloat(volumeSlider.value)); });
     zoomInput.addEventListener('input', () => { pixelsPerSecondEditor = parseInt(zoomInput.value); });
     liveSpeedInput.addEventListener('input', () => { pixelsPerSecondLive = parseInt(liveSpeedInput.value); });
     thicknessInput.addEventListener('input', () => { noteThicknessLive = parseInt(thicknessInput.value); });
     widthScaleInput.addEventListener('input', () => { noteWidthScale = parseInt(widthScaleInput.value) / 100; });
     vfxAlphaInput.addEventListener('input', () => { vfxAlpha = parseFloat(vfxAlphaInput.value); });
+    speedLerpInput.addEventListener('input', () => { speedLerp = parseFloat(speedLerpInput.value); });
     invertScrollToggle.addEventListener('change', () => { isInvertedScroll = invertScrollToggle.checked; });
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
 
@@ -288,10 +230,8 @@ function setupListeners() {
     saveSpriteBtn.onclick = saveSpriteRect;
     closeSpriteBtn.onclick = () => { spriteModal.style.display = 'none'; spriteEditorActive = false; };
 
-    // Prevent context menu to avoid "stuck" state on right click erase
     editorCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // Safety: Reset drag states if window loses focus
     window.addEventListener('blur', () => {
         isLeftDragging = false;
         isRightDragging = false;
@@ -350,9 +290,9 @@ function setupListeners() {
         const laneWidth = rect.width / lanes.length;
         const laneIdx = Math.floor(x / laneWidth);
         const laneId = lanes[laneIdx]?.id;
-        const currentTime = isPlaying ? (audioContext.currentTime - startTime) : pauseOffset;
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
         const timeAtMouse = currentTime + (hitZoneY - y) / pixelsPerSecondEditor;
-        const snappedTick = Math.round(timeToTick(timeAtMouse) / gridSnap) * gridSnap;
+        const snappedTick = Math.round(timeToTick(timeAtMouse, bpm) / gridSnap) * gridSnap;
         ghostEvent = laneId !== undefined ? { laneId, tick: snappedTick } : null;
         if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
         if (isLeftDragging) tryPlaceEvent();
@@ -362,35 +302,16 @@ function setupListeners() {
             lastMouseY = e.clientY;
             const timeDelta = deltaY / pixelsPerSecondEditor;
             pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset - timeDelta));
-            if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
+            if (isPlaying) startTime = audioEngine.currentTime - pauseOffset;
         }
     });
-
-    const getHandleAt = (mx, my) => {
-        const r = currentSpriteRect;
-        const hSize = 15 / displayScale; 
-        if (spriteEditorMode === 'long') {
-            const sx1 = r.x + r.s1; const sx2 = r.x + r.s2;
-            const sv1 = r.y + r.v1; const sv2 = r.y + r.v2;
-            if (Math.abs(mx - sx1) < hSize && my > r.y && my < r.y + r.h) return 's1';
-            if (Math.abs(mx - sx2) < hSize && my > r.y && my < r.y + r.h) return 's2';
-            if (Math.abs(my - sv1) < hSize && mx > r.x && mx < r.x + r.w) return 'v1';
-            if (Math.abs(my - sv2) < hSize && mx > r.x && mx < r.x + r.w) return 'v2';
-        }
-        if (Math.abs(mx - r.x) < hSize && Math.abs(my - r.y) < hSize) return 'tl';
-        if (Math.abs(mx - (r.x + r.w)) < hSize && Math.abs(my - r.y) < hSize) return 'tr';
-        if (Math.abs(mx - r.x) < hSize && Math.abs(my - (r.y + r.h)) < hSize) return 'bl';
-        if (Math.abs(mx - (r.x + r.w)) < hSize && Math.abs(my - (r.y + r.h)) < hSize) return 'br';
-        if (mx > r.x && mx < r.x + r.w && my > r.y && my < r.y + r.h) return 'center';
-        return null;
-    };
 
     spriteEditorCanvas.addEventListener('mousedown', (e) => {
         if (!spriteEditorActive) return;
         const rect = spriteEditorCanvas.getBoundingClientRect();
         const mx = (e.clientX - rect.left) / displayScale;
         const my = (e.clientY - rect.top) / displayScale;
-        dragTarget = getHandleAt(mx, my);
+        dragTarget = getHandleAt(mx, my, currentSpriteRect, displayScale, spriteEditorMode);
         if (dragTarget === 'center') {
             dragOffset = { x: mx - currentSpriteRect.x, y: my - currentSpriteRect.y };
         }
@@ -433,7 +354,7 @@ function setupListeners() {
         s.y = Math.max(0, Math.min(img.height - 10, s.y));
         s.w = Math.min(img.width - s.x, Math.max(10, s.w));
         s.h = Math.min(img.height - s.y, Math.max(10, s.h));
-        renderSpriteEditor();
+        renderSpriteEditorInternal();
     });
 
     spriteEditorCanvas.addEventListener('mousemove', (e) => {
@@ -441,7 +362,7 @@ function setupListeners() {
         const rect = spriteEditorCanvas.getBoundingClientRect();
         const mx = (e.clientX - rect.left) / displayScale;
         const my = (e.clientY - rect.top) / displayScale;
-        const handle = getHandleAt(mx, my);
+        const handle = getHandleAt(mx, my, currentSpriteRect, displayScale, spriteEditorMode);
         if (handle === 'tl' || handle === 'br') spriteEditorCanvas.style.cursor = 'nwse-resize';
         else if (handle === 'tr' || handle === 'bl') spriteEditorCanvas.style.cursor = 'nesw-resize';
         else if (handle === 'center') spriteEditorCanvas.style.cursor = 'move';
@@ -463,7 +384,7 @@ function setupListeners() {
         const timeDelta = deltaY / pixelsPerSecondEditor;
         const direction = isInvertedScroll ? 1 : -1;
         pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset + timeDelta * direction));
-        if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
+        if (isPlaying) startTime = audioEngine.currentTime - pauseOffset;
         lastMouseY = currentY;
     });
 
@@ -473,7 +394,7 @@ function setupListeners() {
         const direction = isInvertedScroll ? 1 : -1;
         const delta = e.deltaY * 0.002 * direction;
         pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset + delta));
-        if (isPlaying) startTime = audioContext.currentTime - pauseOffset;
+        if (isPlaying) startTime = audioEngine.currentTime - pauseOffset;
     }, { passive: true });
 }
 
@@ -558,61 +479,17 @@ function openSpriteEditor() {
     } else {
         currentSpriteRect = { ...storedRect };
     }
-    renderSpriteEditor();
+    renderSpriteEditorInternal();
 }
 
-function renderSpriteEditor() {
+function renderSpriteEditorInternal() {
     const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
-    if (!img) return;
-
-    const { width, height } = spriteEditorCanvas;
-    ctxSprite.clearRect(0, 0, width, height);
-    ctxSprite.drawImage(img, 0, 0, width, height);
-    
-    const rx = currentSpriteRect.x * displayScale;
-    const ry = currentSpriteRect.y * displayScale;
-    const rw = currentSpriteRect.w * displayScale;
-    const rh = currentSpriteRect.h * displayScale;
-    
-    ctxSprite.fillStyle = 'rgba(0,0,0,0.7)';
-    ctxSprite.fillRect(0, 0, width, ry);
-    ctxSprite.fillRect(0, ry + rh, width, height - (ry + rh));
-    ctxSprite.fillRect(0, ry, rx, rh);
-    ctxSprite.fillRect(rx + rw, ry, width - (rx + rw), rh);
-    
-    ctxSprite.strokeStyle = '#ff71ce';
-    ctxSprite.lineWidth = 2;
-    ctxSprite.strokeRect(rx, ry, rw, rh);
-    
-    if (spriteEditorMode === 'long') {
-        ctxSprite.setLineDash([5, 5]);
-        ctxSprite.strokeStyle = '#fbbf24';
-        ctxSprite.lineWidth = 1;
-        const sx1 = (currentSpriteRect.x + currentSpriteRect.s1) * displayScale;
-        const sx2 = (currentSpriteRect.x + currentSpriteRect.s2) * displayScale;
-        const sv1 = (currentSpriteRect.y + currentSpriteRect.v1) * displayScale;
-        const sv2 = (currentSpriteRect.y + currentSpriteRect.v2) * displayScale;
-        
-        ctxSprite.beginPath(); ctxSprite.moveTo(sx1, ry); ctxSprite.lineTo(sx1, ry + rh); ctxSprite.stroke();
-        ctxSprite.beginPath(); ctxSprite.moveTo(sx2, ry); ctxSprite.lineTo(sx2, ry + rh); ctxSprite.stroke();
-        ctxSprite.beginPath(); ctxSprite.moveTo(rx, sv1); ctxSprite.lineTo(rx + rw, sv1); ctxSprite.stroke();
-        ctxSprite.beginPath(); ctxSprite.moveTo(rx, sv2); ctxSprite.lineTo(rx + rw, sv2); ctxSprite.stroke();
-        ctxSprite.setLineDash([]);
-    }
-
-    ctxSprite.fillStyle = '#fff';
-    ctxSprite.strokeStyle = '#000';
-    ctxSprite.lineWidth = 1;
-    const hSize = 5;
-    [ [rx, ry], [rx + rw, ry], [rx, ry + rh], [rx + rw, ry + rh] ].forEach(([hx, hy]) => {
-        ctxSprite.beginPath(); ctxSprite.arc(hx, hy, hSize, 0, Math.PI * 2); ctxSprite.fill(); ctxSprite.stroke();
-    });
+    renderSpriteEditor(ctxSprite, img, currentSpriteRect, displayScale, spriteEditorMode, spriteEditorCanvas.width, spriteEditorCanvas.height);
 }
 
 function saveSpriteRect() {
     if (spriteEditorMode === 'normal') customNoteRect = { ...currentSpriteRect };
     else customLongNoteRect = { ...currentSpriteRect };
-    // No longer closing the modal here to allow continuous editing
 }
 
 function renderLaneHeaders() {
@@ -746,45 +623,21 @@ async function handleAudioUpload(e) {
     trackNameLabel.textContent = file.name;
     try {
         const arrayBuffer = await file.arrayBuffer();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const audioBuffer = await audioEngine.decodeAudio(arrayBuffer);
         duration = audioBuffer.duration;
-        calculateWaveformPeaks();
-        if (audioContext.state === 'suspended') await audioContext.resume();
+        waveformPeaks = calculateWaveformPeaks(audioBuffer, PEAK_RESOLUTION);
+        await audioEngine.resume();
     } catch (err) { alert("Audio decode failed."); }
 }
 
-function calculateWaveformPeaks() {
-    if (!audioBuffer) return;
-    const data = audioBuffer.getChannelData(0);
-    const step = Math.floor(data.length / PEAK_RESOLUTION);
-    waveformPeaks = new Float32Array(PEAK_RESOLUTION);
-    for (let i = 0; i < PEAK_RESOLUTION; i++) {
-        let max = 0;
-        const start = i * step;
-        for (let j = 0; j < step; j++) {
-            const datum = Math.abs(data[start + j]);
-            if (datum > max) max = datum;
-        }
-        waveformPeaks[i] = max;
-    }
-}
-
 async function togglePlayback() {
-    if (audioContext.state === 'suspended') await audioContext.resume();
+    await audioEngine.resume();
     isPlaying ? pausePlayback() : startPlayback();
 }
 
 function startPlayback() {
-    if (audioBuffer) {
-        audioSource = audioContext.createBufferSource();
-        audioSource.buffer = audioBuffer;
-        audioSource.connect(gainNode);
-        const audioTimeNow = Math.max(0, pauseOffset - audioOffset);
-        const whenToStart = audioContext.currentTime + Math.max(0, audioOffset - pauseOffset);
-        audioSource.start(whenToStart, audioTimeNow);
-        audioSource.onended = () => { if (isPlaying) pausePlayback(true); };
-    }
-    startTime = audioContext.currentTime - pauseOffset;
+    audioEngine.start(pauseOffset, audioOffset, () => { if (isPlaying) pausePlayback(true); });
+    startTime = audioEngine.currentTime - pauseOffset;
     isPlaying = true;
     playIcon.classList.add('hidden');
     pauseIcon.classList.remove('hidden');
@@ -792,15 +645,14 @@ function startPlayback() {
 
 function pausePlayback(atEnd = false) {
     if (!isPlaying) return;
-    if (audioSource) { audioSource.stop(); audioSource = null; }
-    pauseOffset = atEnd ? 0 : audioContext.currentTime - startTime;
+    audioEngine.stop();
+    pauseOffset = atEnd ? 0 : audioEngine.currentTime - startTime;
     isPlaying = false;
     playIcon.classList.remove('hidden');
     pauseIcon.classList.add('hidden');
     activeBurstVFX = []; loopingVFX.clear(); activeExplosions = [];
 }
 
-// -- VFX Engine --
 function triggerVFX(laneId, type) {
     if (BURST_VFX.includes(type)) {
         activeBurstVFX.push({ type, startTime: performance.now(), progress: 0, active: true, laneId, randomSeed: Math.random() });
@@ -808,146 +660,6 @@ function triggerVFX(laneId, type) {
         if (loopingVFX.get(laneId) === type) loopingVFX.delete(laneId);
         else loopingVFX.set(laneId, type);
     }
-}
-
-function createNoteExplosion(laneId, laneIdx, totalLanes) {
-    const laneWidth = previewCanvas.width / totalLanes;
-    const centerX = laneIdx * laneWidth + laneWidth / 2;
-    const centerY = previewCanvas.height * 0.8;
-    const particles = [];
-    for (let i = 0; i < 24; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 1 + Math.random() * 3;
-        particles.push({
-            x: centerX, y: centerY, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1,
-            size: 1 + Math.random() * 4, color: NOTE_COLOR, alpha: 1
-        });
-    }
-    activeExplosions.push({ laneId, startTime: performance.now(), particles });
-}
-
-function drawHeart(ctx, x, y, size) {
-    ctx.beginPath(); ctx.moveTo(x, y);
-    ctx.bezierCurveTo(x - size/2, y - size/2, x - size, y + size/4, x, y + size);
-    ctx.bezierCurveTo(x + size, y + size/4, x + size/2, y - size/2, x, y);
-    ctx.fill();
-}
-
-function renderVFX(ctx, width, height) {
-    const now = performance.now();
-    loopingVFX.forEach((vfxType) => {
-        ctx.save();
-        switch (vfxType) {
-            case 'sparkle1': case 'sparkle2': case 'sparkle3':
-                const density = vfxType === 'sparkle1' ? 20 : vfxType === 'sparkle2' ? 50 : 100;
-                for (let i = 0; i < density; i++) {
-                    const seed = i * 1234.56;
-                    const x = ((Math.sin(seed) + 1) / 2) * width;
-                    const y = ((Math.cos(seed * 0.8) + 1) / 2) * height;
-                    const flicker = (Math.sin(now * 0.005 + seed) + 1) / 2;
-                    const size = (flicker * 3) + 1;
-                    ctx.globalAlpha = flicker * 0.8 * vfxAlpha;
-                    ctx.fillStyle = "#fff"; ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
-                    ctx.beginPath(); ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
-                    ctx.moveTo(x, y - size); ctx.lineTo(x, y + size); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
-                    ctx.beginPath(); ctx.arc(x, y, size/2, 0, Math.PI * 2); ctx.fill();
-                }
-                break;
-            case 'flames1': case 'flames2': case 'flames3':
-                const fCount = vfxType === 'flames1' ? 60 : vfxType === 'flames2' ? 120 : 250;
-                for (let i = 0; i < fCount; i++) {
-                    const t = (now * 0.001 + i * (1/fCount) * 10) % 1;
-                    const x = (Math.sin(i * 555) * 0.45 + 0.5) * width + Math.sin(now * 0.002 + i) * 30;
-                    const y = height * (1 - t);
-                    const size = (1 - t) * (vfxType === 'flames1' ? 15 : 25);
-                    const alpha = (1 - t) * 0.6 * vfxAlpha;
-                    const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
-                    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`); grad.addColorStop(0.2, `rgba(255, 220, 0, ${alpha})`);
-                    grad.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.5})`); grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
-                }
-                break;
-            case 'confetti1': case 'confetti2': case 'confetti3':
-                const cCount = vfxType === 'confetti1' ? 40 : vfxType === 'confetti2' ? 80 : 160;
-                const colors = ['#ff71ce', '#01cdfe', '#05ffa1', '#b967ff', '#fffb96'];
-                for (let i = 0; i < cCount; i++) {
-                    const t = (now * 0.0004 + i * 0.13) % 1;
-                    const x = ((Math.sin(i * 99) + 1) / 2) * width + Math.sin(now * 0.001 + i) * 20;
-                    const y = t * height;
-                    const rotate = now * 0.01 + i; const flip = Math.sin(now * 0.008 + i);
-                    ctx.fillStyle = colors[i % colors.length]; ctx.globalAlpha = 0.9 * vfxAlpha;
-                    ctx.save(); ctx.translate(x, y); ctx.rotate(rotate); ctx.scale(1, flip); ctx.fillRect(-5, -5, 10, 10); ctx.restore();
-                }
-                break;
-        }
-        ctx.restore();
-    });
-
-    activeBurstVFX = activeBurstVFX.filter(v => v.active);
-    activeBurstVFX.forEach(vfx => {
-        const dur = 700; vfx.progress = (now - vfx.startTime) / dur;
-        if (vfx.progress >= 1) { vfx.active = false; return; }
-        const p = vfx.progress; const easeOut = 1 - Math.pow(1 - p, 4);
-        ctx.save();
-        switch (vfx.type) {
-            case 'heart1': case 'heart2': case 'heart3':
-                const hCount = vfx.type === 'heart1' ? 8 : vfx.type === 'heart2' ? 16 : 32;
-                ctx.globalAlpha = (1 - p) * vfxAlpha;
-                for (let i = 0; i < hCount; i++) {
-                    const angle = (i / hCount) * Math.PI * 2; const dist = easeOut * (vfx.type === 'heart3' ? 400 : 200);
-                    const hx = width/2 + Math.cos(angle) * dist + Math.sin(now * 0.005 + i) * 20;
-                    const hy = height * 0.8 - (p * height) + Math.sin(angle) * 50;
-                    const hSize = (1 - p) * 15 + 5; ctx.fillStyle = i % 2 === 0 ? '#ff0044' : '#ff71ce';
-                    ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; drawHeart(ctx, hx, hy, hSize);
-                }
-                break;
-            case 'glitter1': case 'glitter2': case 'glitter3':
-                const glCount = vfx.type === 'glitter1' ? 40 : vfx.type === 'glitter2' ? 80 : 150;
-                for (let i = 0; i < glCount; i++) {
-                    const seed = i + (vfx.randomSeed * 500); const gx = ((Math.sin(seed) + 1)/2) * width;
-                    const gy = ((Math.cos(seed * 0.7) + 1)/2) * height;
-                    const gAlpha = (1 - p) * ((Math.sin(now * 0.02 + i) + 1)/2);
-                    ctx.globalAlpha = gAlpha * vfxAlpha; ctx.fillStyle = "#fff"; ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
-                    ctx.beginPath(); ctx.arc(gx, gy, Math.random() * 3 + 1, 0, Math.PI * 2); ctx.fill();
-                }
-                break;
-            case 'explode1': case 'explode2': case 'explode3':
-                const maxR = vfx.type === 'explode1' ? 150 : vfx.type === 'explode2' ? 300 : 500;
-                ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - p) * vfxAlpha})`;
-                ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.stroke();
-                const gradE = ctx.createRadialGradient(width/2, 0, 0, width/2, 0, maxR * easeOut);
-                gradE.addColorStop(0, 'rgba(255, 255, 255, 0)'); gradE.addColorStop(1, `rgba(255, 255, 255, ${(1 - p) * 0.3 * vfxAlpha})`);
-                ctx.fillStyle = gradE; ctx.beginPath(); ctx.arc(width/2, 0, maxR * easeOut, 0, Math.PI); ctx.fill();
-                break;
-            case 'light1': case 'light2': case 'light3':
-                const beams = 12; ctx.globalAlpha = (1 - p) * 0.5 * vfxAlpha;
-                for (let i = 0; i < beams; i++) {
-                    const angle = (Math.PI / beams) * i + (p * 0.5);
-                    ctx.beginPath(); ctx.moveTo(width/2, 0);
-                    ctx.lineTo(width/2 + Math.cos(angle) * width * 2, Math.sin(angle) * height);
-                    ctx.lineTo(width/2 + Math.cos(angle + 0.1) * width * 2, Math.sin(angle + 0.1) * height);
-                    ctx.fillStyle = '#fff'; ctx.fill();
-                }
-                break;
-            case 'wipeDown':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4 * vfxAlpha})`; ctx.fillRect(0, 0, width, height * easeOut);
-                break;
-            case 'wipeUp':
-                ctx.fillStyle = `rgba(255, 255, 255, ${(1-p)*0.4 * vfxAlpha})`; ctx.fillRect(0, height * (1 - easeOut), width, height);
-                break;
-        }
-        ctx.restore();
-    });
-
-    activeExplosions = activeExplosions.filter(ex => now - ex.startTime < 500);
-    activeExplosions.forEach(ex => {
-        ex.particles.forEach(pt => {
-            pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.12; pt.alpha *= 0.95;
-            ctx.save(); ctx.globalAlpha = pt.alpha * vfxAlpha; ctx.fillStyle = pt.color;
-            ctx.shadowBlur = 8; ctx.shadowColor = pt.color; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-        });
-    });
 }
 
 function drawWaveform(currentTime) {
@@ -975,24 +687,24 @@ function drawEditor(currentTime) {
     lanes.forEach((l, i) => {
         ctxEdit.strokeStyle = GRID_COLOR; ctxEdit.beginPath(); ctxEdit.moveTo(i * laneWidth, 0); ctxEdit.lineTo(i * laneWidth, height); ctxEdit.stroke();
     });
-    const timePerBeat = tickToTime(TICKS_PER_BAR / BEATS_PER_BAR);
-    const timePerBar = tickToTime(TICKS_PER_BAR);
+    const timePerBeat = tickToTime(TICKS_PER_BAR / BEATS_PER_BAR, bpm);
+    const timePerBar = tickToTime(TICKS_PER_BAR, bpm);
     const firstBar = Math.floor(timeMin / timePerBar) * timePerBar;
     for (let t = firstBar; t < timeMax; t += timePerBeat) {
         const y = hitZoneY - (t - currentTime) * pixelsPerSecondEditor;
-        const tickCount = timeToTick(t);
+        const tickCount = timeToTick(t, bpm);
         const isBar = tickCount % TICKS_PER_BAR === 0;
         ctxEdit.strokeStyle = isBar ? BAR_LINE_COLOR : BEAT_LINE_COLOR; ctxEdit.lineWidth = isBar ? 2 : 1;
         ctxEdit.beginPath(); ctxEdit.moveTo(0, y); ctxEdit.lineTo(width, y); ctxEdit.stroke();
     }
     lanes.forEach((lane, laneIdx) => {
-        const segments = lane.type === 'note' ? getNoteSegments(lane.id) : [];
+        const segments = lane.type === 'note' ? getNoteSegments(lane.id, events) : [];
         const isPartofLongGroup = (tick) => {
             const seg = segments.find(s => tick >= s.startTick && tick <= s.endTick);
             return seg ? seg.isLong : false;
         };
         events.filter(e => e.laneId === lane.id).forEach(e => {
-            const eventTime = tickToTime(e.tick);
+            const eventTime = tickToTime(e.tick, bpm);
             if (eventTime >= timeMin && eventTime <= timeMax) {
                 const y = hitZoneY - (eventTime - currentTime) * pixelsPerSecondEditor;
                 if (lane.type !== 'note') ctxEdit.fillStyle = VFX_COLOR;
@@ -1004,32 +716,8 @@ function drawEditor(currentTime) {
     if (ghostEvent) {
         const laneIdx = lanes.findIndex(l => l.id === ghostEvent.laneId);
         if (laneIdx !== -1) {
-            const y = hitZoneY - (tickToTime(ghostEvent.tick) - currentTime) * pixelsPerSecondEditor;
+            const y = hitZoneY - (tickToTime(ghostEvent.tick, bpm) - currentTime) * pixelsPerSecondEditor;
             ctxEdit.fillStyle = GHOST_NOTE_COLOR; ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
-        }
-    }
-}
-
-function draw9Slice(ctx, img, rect, x, y, w, h) {
-    const { x: rx, y: ry, w: rw, h: rh, s1, s2, v1, v2 } = rect;
-    // Source sizes
-    const sw = [s1, s2 - s1, rw - s2];
-    const sh = [v1, v2 - v1, rh - v2];
-    // Scale horizontal based on lane width fit
-    const scaleX = w / rw;
-    // For vertical elements, we use scaleX as the baseline scale to maintain visual consistency of the caps
-    const scaleCap = scaleX; 
-    const dw = [sw[0] * scaleX, Math.max(0, w - (sw[0] + sw[2]) * scaleX), sw[2] * scaleX];
-    const dh = [sh[0] * scaleCap, Math.max(0, h - (sh[0] + sh[2]) * scaleCap), sh[2] * scaleCap];
-    // Correct logic: Only center segment (index 1) should soak up the duration height
-    const sourceX = [rx, rx + s1, rx + s2];
-    const sourceY = [ry, ry + v1, ry + v2];
-    const destX = [x, x + dw[0], x + dw[0] + dw[1]];
-    const destY = [y, y + dh[0], y + dh[0] + dh[1]];
-    for (let iy = 0; iy < 3; iy++) {
-        for (let ix = 0; ix < 3; ix++) {
-            if (sw[ix] <= 0 || sh[iy] <= 0 || dw[ix] <= 0 || dh[iy] <= 0) continue;
-            ctx.drawImage(img, sourceX[ix], sourceY[iy], sw[ix], sh[iy], destX[ix], destY[iy], dw[ix], dh[iy]);
         }
     }
 }
@@ -1044,7 +732,9 @@ function drawPreview(currentTime) {
         ctxPrev.drawImage(customBgImage, x, y, customBgImage.width * scale, customBgImage.height * scale);
         ctxPrev.fillStyle = 'rgba(0,0,0,0.3)'; ctxPrev.fillRect(0,0,width,height);
     }
-    renderVFX(ctxPrev, width, height);
+    
+    renderAllVFX(ctxPrev, width, height, performance.now(), loopingVFX, activeBurstVFX, activeExplosions, vfxAlpha);
+
     const noteLanes = lanes.filter(l => l.type === 'note');
     if (noteLanes.length === 0) return;
     const laneWidth = width / noteLanes.length;
@@ -1058,15 +748,26 @@ function drawPreview(currentTime) {
             ctxPrev.fillStyle = grad; ctxPrev.fillRect(laneIdx * laneWidth, 0, laneWidth, height);
         }
     });
-    const timeMaxInView = currentTime + (hitZoneY / pixelsPerSecondLive);
+    const lookaheadTime = hitZoneY / pixelsPerSecondLive;
+    const timeMaxInView = currentTime + lookaheadTime;
     noteLanes.forEach((lane, laneIdx) => {
-        const segments = getNoteSegments(lane.id);
+        const segments = getNoteSegments(lane.id, events);
         segments.forEach(seg => {
-            const startT = tickToTime(seg.startTick);
-            const endT = tickToTime(seg.endTick);
+            const startT = tickToTime(seg.startTick, bpm);
+            const endT = tickToTime(seg.endTick, bpm);
             if (endT < currentTime || startT > timeMaxInView) return;
-            const y1 = hitZoneY - (startT - currentTime) * pixelsPerSecondLive;
-            const y2 = hitZoneY - (endT - currentTime) * pixelsPerSecondLive;
+
+            const getVisualY = (time) => {
+                const timeRemaining = time - currentTime;
+                const progress = Math.max(0, 1 - (timeRemaining / lookaheadTime));
+                const startY = -noteThicknessLive;
+                const linearY = lerp(startY, hitZoneY, progress);
+                const quadY = lerp(startY, hitZoneY, progress * progress);
+                return lerp(linearY, quadY, speedLerp);
+            };
+
+            const y1 = getVisualY(startT);
+            const y2 = getVisualY(endT);
             const visualWidth = laneWidth * noteWidthScale;
             const destX = laneIdx * laneWidth + (laneWidth - visualWidth) / 2;
             if (seg.isLong) {
@@ -1102,16 +803,19 @@ function updateTimeDisplay(time) {
 
 let lastFrameTime = 0;
 function renderLoop() {
-    const currentTime = isPlaying ? (audioContext.currentTime - startTime) : pauseOffset;
+    const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
     drawWaveform(currentTime); drawEditor(currentTime); drawPreview(currentTime); updateTimeDisplay(currentTime);
     if (isPlaying) {
         const noteLanes = lanes.filter(l => l.type === 'note');
         events.forEach(e => {
-            const eventTime = tickToTime(e.tick);
+            const eventTime = tickToTime(e.tick, bpm);
             if (eventTime <= currentTime && eventTime > lastFrameTime) {
                 const lane = lanes.find(l => l.id === e.laneId);
                 if (lane) {
-                    if (lane.type === 'note') createNoteExplosion(lane.id, noteLanes.indexOf(lane), noteLanes.length);
+                    if (lane.type === 'note') {
+                        const explosion = createNoteExplosion(lane.id, noteLanes.indexOf(lane), noteLanes.length, previewCanvas.width, previewCanvas.height);
+                        activeExplosions.push(explosion);
+                    }
                     else if (lane.type === 'vfx' && lane.vfxType) triggerVFX(lane.id, lane.vfxType);
                 }
             }
