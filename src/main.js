@@ -46,11 +46,13 @@ let nextId = 0;
 let isInvertedScroll = true;
 
 // Custom Assets
-let customBgImage = null;
-let customNoteImage = null;
-let customNoteRect = { x: 0, y: 0, w: 0, h: 0 };
-let customLongNoteImage = null;
-let customLongNoteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 }; 
+let backgrounds = []; // { img, rect }
+let shortNotes = [];  // { img, rect }
+let longNotes = [];   // { img, rect }
+let currentThemeIndex = 0;
+
+// Editor Selection
+let selectedAsset = null; // { type: 'bg'|'note'|'long', index: number }
 
 // Modal State
 let editingLaneId = null;
@@ -73,9 +75,10 @@ let displayScale = 1.0;
 
 // -- DOM Elements --
 let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
-let bgInput, noteSpriteInput, longNoteSpriteInput, noteEditBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn, spriteUploadBtn, clearTextureBtn;
+let bgInput, noteSpriteInput, longNoteSpriteInput, themeSettingsBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn;
+let bgList, noteList, longNoteList, editorTitle, editorHint;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
-let tabNormalBtn, tabLongBtn, hintNormal, hintLong;
+let zoomValue, liveSpeedValue, speedLerpValue, thicknessValue, widthScaleValue, vfxAlphaValue, volumeValue;
 
 // -- Initialization --
 function init() {
@@ -114,22 +117,41 @@ function init() {
     ctxEdit = editorCanvas.getContext('2d');
     ctxPrev = previewCanvas.getContext('2d');
 
-    // Sprite Elements
+    // Theme Elements
     bgInput = document.getElementById('bgInput');
     noteSpriteInput = document.getElementById('noteSpriteInput');
     longNoteSpriteInput = document.getElementById('longNoteSpriteInput');
-    noteEditBtn = document.getElementById('noteEditBtn');
+    themeSettingsBtn = document.getElementById('themeSettingsBtn');
     spriteModal = document.getElementById('spriteModal');
     spriteEditorCanvas = document.getElementById('spriteEditorCanvas');
     ctxSprite = spriteEditorCanvas.getContext('2d');
     saveSpriteBtn = document.getElementById('saveSpriteBtn');
     closeSpriteBtn = document.getElementById('closeSpriteBtn');
-    spriteUploadBtn = document.getElementById('spriteUploadBtn');
-    clearTextureBtn = document.getElementById('clearTextureBtn');
-    tabNormalBtn = document.getElementById('tabNormalBtn');
-    tabLongBtn = document.getElementById('tabLongBtn');
-    hintNormal = document.getElementById('hintNormal');
-    hintLong = document.getElementById('hintLong');
+    
+    bgList = document.getElementById('bgList');
+    noteList = document.getElementById('noteList');
+    longNoteList = document.getElementById('longNoteList');
+    editorTitle = document.getElementById('editorTitle');
+    editorHint = document.getElementById('editorHint');
+
+    // Slider Values
+    zoomValue = document.getElementById('zoomValue');
+    liveSpeedValue = document.getElementById('liveSpeedValue');
+    speedLerpValue = document.getElementById('speedLerpValue');
+    thicknessValue = document.getElementById('thicknessValue');
+    widthScaleValue = document.getElementById('widthScaleValue');
+    vfxAlphaValue = document.getElementById('vfxAlphaValue');
+    volumeValue = document.getElementById('volumeValue');
+
+    // Sync initial values
+    const sync = (slider, input) => { if(slider && input) input.value = slider.value; };
+    sync(zoomInput, zoomValue);
+    sync(liveSpeedInput, liveSpeedValue);
+    sync(speedLerpInput, speedLerpValue);
+    sync(thicknessInput, thicknessValue);
+    sync(widthScaleInput, widthScaleValue);
+    sync(vfxAlphaInput, vfxAlphaValue);
+    sync(volumeSlider, volumeValue);
 
     // Resizers
     resizer1 = document.getElementById('resizer1');
@@ -181,30 +203,15 @@ async function loadDefaultData() {
 function setupListeners() {
     audioInput.addEventListener('change', handleAudioUpload);
     projectInput.addEventListener('change', handleProjectImportFile);
-    bgInput.addEventListener('change', handleBgUpload);
-    noteSpriteInput.addEventListener('change', (e) => handleSpriteUpload(e, 'normal'));
-    longNoteSpriteInput.addEventListener('change', (e) => handleSpriteUpload(e, 'long'));
+    
+    bgInput.addEventListener('change', (e) => handleAssetUpload(e, 'bg'));
+    noteSpriteInput.addEventListener('change', (e) => handleAssetUpload(e, 'note'));
+    longNoteSpriteInput.addEventListener('change', (e) => handleAssetUpload(e, 'long'));
 
-    tabNormalBtn.addEventListener('click', () => { spriteEditorMode = 'normal'; updateSpriteModalUI(); });
-    tabLongBtn.addEventListener('click', () => { spriteEditorMode = 'long'; updateSpriteModalUI(); });
-
-    noteEditBtn.addEventListener('click', () => {
-        openSpriteEditor();
-    });
-
-    spriteUploadBtn.addEventListener('click', () => {
-        spriteEditorMode === 'normal' ? noteSpriteInput.click() : longNoteSpriteInput.click();
-    });
-
-    clearTextureBtn.addEventListener('click', () => {
-        if (spriteEditorMode === 'normal') {
-            customNoteImage = null;
-            customNoteRect = { x: 0, y: 0, w: 0, h: 0 };
-        } else {
-            customLongNoteImage = null;
-            customLongNoteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
-        }
-        renderSpriteEditorInternal();
+    themeSettingsBtn.addEventListener('click', () => {
+        spriteModal.style.display = 'block';
+        spriteEditorActive = true;
+        renderAllAssetLists();
     });
 
     playBtn.addEventListener('click', togglePlayback);
@@ -212,19 +219,47 @@ function setupListeners() {
     importBtn.addEventListener('click', () => projectInput.click());
     addLaneBtn.addEventListener('click', addNewLane);
 
+    saveSpriteBtn.onclick = saveSpriteRect;
+    closeSpriteBtn.onclick = () => { spriteModal.style.display = 'none'; spriteEditorActive = false; };
+
+    // Slider Sync Listeners
+    const setupSync = (slider, input, callback) => {
+        if (!slider || !input) return;
+        slider.addEventListener('input', () => { 
+            input.value = slider.value; 
+            callback(slider.value); 
+        });
+        input.addEventListener('change', () => { 
+            slider.value = input.value; 
+            callback(input.value); 
+        });
+    };
+
     bpmInput.addEventListener('change', () => { bpm = parseInt(bpmInput.value) || 120; });
-    volumeSlider.addEventListener('input', () => { audioEngine.setVolume(parseFloat(volumeSlider.value)); });
-    zoomInput.addEventListener('input', () => { pixelsPerSecondEditor = parseInt(zoomInput.value); });
-    liveSpeedInput.addEventListener('input', () => { pixelsPerSecondLive = parseInt(liveSpeedInput.value); });
-    thicknessInput.addEventListener('input', () => { noteThicknessLive = parseInt(thicknessInput.value); });
-    widthScaleInput.addEventListener('input', () => { noteWidthScale = parseInt(widthScaleInput.value) / 100; });
-    vfxAlphaInput.addEventListener('input', () => { vfxAlpha = parseFloat(vfxAlphaInput.value); });
-    speedLerpInput.addEventListener('input', () => { speedLerp = parseFloat(speedLerpInput.value); });
+    setupSync(volumeSlider, volumeValue, (v) => audioEngine.setVolume(parseFloat(v)));
+    setupSync(zoomInput, zoomValue, (v) => pixelsPerSecondEditor = parseInt(v));
+    setupSync(liveSpeedInput, liveSpeedValue, (v) => pixelsPerSecondLive = parseInt(v));
+    setupSync(thicknessInput, thicknessValue, (v) => noteThicknessLive = parseInt(v));
+    setupSync(widthScaleInput, widthScaleValue, (v) => noteWidthScale = parseInt(v) / 100);
+    setupSync(vfxAlphaInput, vfxAlphaValue, (v) => vfxAlpha = parseFloat(v));
+    setupSync(speedLerpInput, speedLerpValue, (v) => speedLerp = parseFloat(v));
+
     invertScrollToggle.addEventListener('change', () => { isInvertedScroll = invertScrollToggle.checked; });
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
 
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !spriteEditorActive && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            const maxLen = Math.max(backgrounds.length, shortNotes.length, longNotes.length);
+            if (maxLen > 0) {
+                currentThemeIndex = (currentThemeIndex + 1) % maxLen;
+            }
+        }
+    });
+
     document.getElementById('closeModalBtn')?.addEventListener('click', () => { vfxModal.style.display = 'none'; });
     document.getElementById('setNoteOption')?.addEventListener('click', () => setLaneType('note'));
+    document.getElementById('setThemeSwitchOption')?.addEventListener('click', () => setVfxType('SwitchThemeSet'));
     document.getElementById('deleteLaneBtn')?.addEventListener('click', deleteCurrentLane);
 
     saveSpriteBtn.onclick = saveSpriteRect;
@@ -398,56 +433,146 @@ function setupListeners() {
     }, { passive: true });
 }
 
-function handleBgUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => { customBgImage = img; };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-}
+function handleAssetUpload(e, type) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-function handleSpriteUpload(e, mode) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-            if (mode === 'normal') customNoteImage = img;
-            else customLongNoteImage = img;
-            spriteEditorMode = mode;
-            openSpriteEditor();
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const asset = {
+                    img,
+                    rect: type === 'long' 
+                        ? { x: 0, y: 0, w: img.width, h: img.height, s1: img.width*0.2, s2: img.width*0.8, v1: img.height*0.2, v2: img.height*0.8 }
+                        : { x: 0, y: 0, w: img.width, h: img.height }
+                };
+                if (type === 'bg') backgrounds.push(asset);
+                else if (type === 'note') shortNotes.push(asset);
+                else if (type === 'long') longNotes.push(asset);
+                
+                renderAllAssetLists();
+            };
+            img.src = event.target.result;
         };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+    });
+    e.target.value = '';
 }
 
-function updateSpriteModalUI() {
-    if (spriteEditorMode === 'normal') {
-        tabNormalBtn.classList.add('active');
-        tabLongBtn.classList.remove('active');
-        hintNormal.classList.remove('hidden');
-        hintLong.classList.add('hidden');
-    } else {
-        tabLongBtn.classList.add('active');
-        tabNormalBtn.classList.remove('active');
-        hintLong.classList.remove('hidden');
-        hintNormal.classList.add('hidden');
+function renderAllAssetLists() {
+    renderAssetList('bg', bgList, backgrounds);
+    renderAssetList('note', noteList, shortNotes);
+    renderAssetList('long', longNoteList, longNotes);
+}
+
+function renderAssetList(type, container, list) {
+    container.innerHTML = '';
+    if (list.length === 0) {
+        container.innerHTML = '<div class="text-[7px] text-white/20 text-center py-2 italic px-4">No assets</div>';
+        return;
     }
-    openSpriteEditor();
+    list.forEach((asset, index) => {
+        const item = document.createElement('div');
+        item.className = `group relative flex-shrink-0 w-14 h-14 rounded border cursor-pointer transition-all ${selectedAsset?.type === type && selectedAsset?.index === index ? 'bg-pink-500/30 border-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.2)]' : 'bg-white/5 border-white/10 hover:bg-white/10'}`;
+        item.draggable = true;
+        
+        const thumb = document.createElement('div');
+        thumb.className = 'w-full h-full rounded overflow-hidden';
+        const img = new Image();
+        img.src = asset.img.src;
+        img.className = 'w-full h-full object-cover';
+        thumb.appendChild(img);
+        
+        // Clone Button (Top Right)
+        const cloneBtn = document.createElement('button');
+        cloneBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+        cloneBtn.className = 'absolute -top-1 -right-1 bg-cyan-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10';
+        cloneBtn.title = 'Clone Asset';
+        cloneBtn.onclick = (e) => {
+            e.stopPropagation();
+            cloneAsset(type, index);
+        };
+
+        // Delete Button (Bottom Right)
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        delBtn.className = 'absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            list.splice(index, 1);
+            if (selectedAsset?.type === type && selectedAsset?.index === index) {
+                selectedAsset = null;
+                openSpriteEditor();
+            } else if (selectedAsset?.type === type && selectedAsset?.index > index) {
+                selectedAsset.index--;
+            }
+            renderAllAssetLists();
+        };
+
+        item.onclick = () => {
+            selectedAsset = { type, index };
+            spriteEditorMode = (type === 'long' ? 'long' : 'normal');
+            openSpriteEditor();
+            renderAllAssetLists();
+        };
+
+        // Drag and Drop
+        item.ondragstart = (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ type, index }));
+            item.classList.add('opacity-50', 'scale-95');
+        };
+        item.ondragend = () => item.classList.remove('opacity-50', 'scale-95');
+        item.ondragover = (e) => {
+            e.preventDefault();
+            item.classList.add('border-pink-500/50', 'bg-pink-500/5');
+        };
+        item.ondragleave = () => {
+            item.classList.remove('border-pink-500/50', 'bg-pink-500/5');
+        };
+        item.ondrop = (e) => {
+            e.preventDefault();
+            item.classList.remove('border-pink-500/50', 'bg-pink-500/5');
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.type !== type) return;
+            const fromIndex = data.index;
+            const toIndex = index;
+            if (fromIndex === toIndex) return;
+            
+            const element = list.splice(fromIndex, 1)[0];
+            list.splice(toIndex, 0, element);
+            
+            // Update selection if it moved
+            if (selectedAsset?.type === type) {
+                if (selectedAsset.index === fromIndex) selectedAsset.index = toIndex;
+                else if (fromIndex < selectedAsset.index && toIndex >= selectedAsset.index) selectedAsset.index--;
+                else if (fromIndex > selectedAsset.index && toIndex <= selectedAsset.index) selectedAsset.index++;
+            }
+            
+            renderAllAssetLists();
+        };
+
+        item.appendChild(thumb);
+        item.appendChild(cloneBtn);
+        item.appendChild(delBtn);
+        container.appendChild(item);
+    });
+}
+
+function cloneAsset(type, index) {
+    const list = type === 'bg' ? backgrounds : (type === 'note' ? shortNotes : longNotes);
+    const original = list[index];
+    const clone = {
+        img: original.img,
+        rect: { ...original.rect }
+    };
+    list.splice(index + 1, 0, clone);
+    renderAllAssetLists();
 }
 
 function openSpriteEditor() {
-    spriteModal.style.display = 'block';
-    spriteEditorActive = true;
-    
-    const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
-    if (!img) {
+    if (!selectedAsset) {
         spriteEditorCanvas.width = 400;
         spriteEditorCanvas.height = 200;
         ctxSprite.clearRect(0, 0, 400, 200);
@@ -455,9 +580,16 @@ function openSpriteEditor() {
         ctxSprite.fillRect(0,0,400,200);
         ctxSprite.fillStyle = "#fff";
         ctxSprite.textAlign = "center";
-        ctxSprite.fillText("No Texture Uploaded", 200, 100);
+        ctxSprite.fillText("Select an asset to edit", 200, 100);
+        editorTitle.textContent = "Select an asset to edit";
         return;
     }
+    
+    const list = selectedAsset.type === 'bg' ? backgrounds : (selectedAsset.type === 'note' ? shortNotes : longNotes);
+    const asset = list[selectedAsset.index];
+    const img = asset.img;
+    
+    editorTitle.textContent = `Editing ${selectedAsset.type.toUpperCase()} ${selectedAsset.index + 1}`;
 
     const container = spriteEditorCanvas.parentElement;
     const cWidth = container.clientWidth - 40;
@@ -467,29 +599,22 @@ function openSpriteEditor() {
     spriteEditorCanvas.width = img.width * displayScale;
     spriteEditorCanvas.height = img.height * displayScale;
     
-    const storedRect = spriteEditorMode === 'normal' ? customNoteRect : customLongNoteRect;
-
-    if (storedRect.w === 0) {
-        const w = img.width * 0.8;
-        const h = img.height * 0.6;
-        currentSpriteRect = {
-            x: (img.width - w) / 2, y: (img.height - h) / 2, w: w, h: h,
-            s1: w * 0.2, s2: w * 0.8, v1: h * 0.2, v2: h * 0.8
-        };
-    } else {
-        currentSpriteRect = { ...storedRect };
-    }
+    currentSpriteRect = { ...asset.rect };
     renderSpriteEditorInternal();
 }
 
 function renderSpriteEditorInternal() {
-    const img = spriteEditorMode === 'normal' ? customNoteImage : customLongNoteImage;
-    renderSpriteEditor(ctxSprite, img, currentSpriteRect, displayScale, spriteEditorMode, spriteEditorCanvas.width, spriteEditorCanvas.height);
+    if (!selectedAsset) return;
+    const list = selectedAsset.type === 'bg' ? backgrounds : (selectedAsset.type === 'note' ? shortNotes : longNotes);
+    const asset = list[selectedAsset.index];
+    renderSpriteEditor(ctxSprite, asset.img, currentSpriteRect, displayScale, spriteEditorMode, spriteEditorCanvas.width, spriteEditorCanvas.height);
 }
 
 function saveSpriteRect() {
-    if (spriteEditorMode === 'normal') customNoteRect = { ...currentSpriteRect };
-    else customLongNoteRect = { ...currentSpriteRect };
+    if (!selectedAsset) return;
+    const list = selectedAsset.type === 'bg' ? backgrounds : (selectedAsset.type === 'note' ? shortNotes : longNotes);
+    list[selectedAsset.index].rect = { ...currentSpriteRect };
+    alert("Changes applied to asset!");
 }
 
 function renderLaneHeaders() {
@@ -654,6 +779,13 @@ function pausePlayback(atEnd = false) {
 }
 
 function triggerVFX(laneId, type) {
+    if (type === 'SwitchThemeSet') {
+        const maxLen = Math.max(backgrounds.length, shortNotes.length, longNotes.length);
+        if (maxLen > 0) {
+            currentThemeIndex = (currentThemeIndex + 1) % maxLen;
+        }
+        return;
+    }
     if (BURST_VFX.includes(type)) {
         activeBurstVFX.push({ type, startTime: performance.now(), progress: 0, active: true, laneId, randomSeed: Math.random() });
     } else if (IDLE_VFX.includes(type)) {
@@ -726,10 +858,14 @@ function drawPreview(currentTime) {
     const { width, height } = previewCanvas;
     const hitZoneY = height * 0.8;
     ctxPrev.clearRect(0, 0, width, height);
-    if (customBgImage) {
-        const scale = Math.max(width / customBgImage.width, height / customBgImage.height);
-        const x = (width / 2) - (customBgImage.width / 2) * scale; const y = (height / 2) - (customBgImage.height / 2) * scale;
-        ctxPrev.drawImage(customBgImage, x, y, customBgImage.width * scale, customBgImage.height * scale);
+
+    const bg = backgrounds[currentThemeIndex % backgrounds.length];
+    if (bg) {
+        const img = bg.img;
+        const rect = bg.rect;
+        const scale = Math.max(width / rect.w, height / rect.h);
+        const x = (width / 2) - (rect.w / 2) * scale; const y = (height / 2) - (rect.h / 2) * scale;
+        ctxPrev.drawImage(img, rect.x, rect.y, rect.w, rect.h, x, y, rect.w * scale, rect.h * scale);
     }
     
     renderAllVFX(ctxPrev, width, height, performance.now(), loopingVFX, activeBurstVFX, activeExplosions, vfxAlpha);
@@ -749,6 +885,10 @@ function drawPreview(currentTime) {
     });
     const lookaheadTime = hitZoneY / pixelsPerSecondLive;
     const timeMaxInView = currentTime + lookaheadTime;
+
+    const sn = shortNotes[currentThemeIndex % shortNotes.length];
+    const ln = longNotes[currentThemeIndex % longNotes.length];
+
     noteLanes.forEach((lane, laneIdx) => {
         const segments = getNoteSegments(lane.id, events);
         segments.forEach(seg => {
@@ -773,16 +913,16 @@ function drawPreview(currentTime) {
                 const startEdgeY = y1 + noteThicknessLive/2;
                 const endEdgeY = y2 - noteThicknessLive/2;
                 const destH = Math.max(noteThicknessLive, startEdgeY - endEdgeY);
-                if (customLongNoteImage && customLongNoteRect.w > 0) {
-                    draw9Slice(ctxPrev, customLongNoteImage, customLongNoteRect, destX, endEdgeY, visualWidth, destH);
+                if (ln) {
+                    draw9Slice(ctxPrev, ln.img, ln.rect, destX, endEdgeY, visualWidth, destH);
                 } else {
                     ctxPrev.fillStyle = LONG_NOTE_COLOR; ctxPrev.shadowBlur = 15; ctxPrev.shadowColor = LONG_NOTE_COLOR;
                     ctxPrev.beginPath(); ctxPrev.roundRect(destX, endEdgeY, visualWidth, destH, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
                 }
             } else {
                 const destY = y1 - noteThicknessLive/2;
-                if (customNoteImage && customNoteRect.w > 0) {
-                    ctxPrev.drawImage(customNoteImage, customNoteRect.x, customNoteRect.y, customNoteRect.w, customNoteRect.h, destX, destY, visualWidth, noteThicknessLive);
+                if (sn) {
+                    ctxPrev.drawImage(sn.img, sn.rect.x, sn.rect.y, sn.rect.w, sn.rect.h, destX, destY, visualWidth, noteThicknessLive);
                 } else {
                     ctxPrev.fillStyle = NOTE_COLOR; ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
                     ctxPrev.beginPath(); ctxPrev.roundRect(destX, destY, visualWidth, noteThicknessLive, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;

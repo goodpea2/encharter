@@ -328,12 +328,8 @@
             <div id="previewPanel" class="view-panel-container">
                 <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center justify-between shrink-0 z-10">
                     <span>Live Preview</span>
-                    <div class="flex gap-2">
-                        <input type="file" id="bgInput" accept="image/*" class="hidden">
-                        <input type="file" id="noteSpriteInput" accept="image/*" class="hidden">
-                        <input type="file" id="longNoteSpriteInput" accept="image/*" class="hidden">
-                        <button onclick="document.getElementById('bgInput').click()" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">BG</button>
-                        <button id="noteEditBtn" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all">NOTE</button>
+            <div class="flex gap-2">
+                        <button id="themeSettingsBtn" class="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-pink-500/20 rounded text-[7px] transition-all uppercase tracking-widest">Theme Settings</button>
                     </div>
                 </div>
                 <div class="editor-container">
@@ -357,6 +353,7 @@
                 <div class="text-[8px] font-mono text-pink-400 uppercase mb-2">Basic</div>
                 <div id="basicList" class="flex flex-wrap gap-1">
                     <button id="setNoteOption" class="vfx-btn bg-white/5 border border-white/10 text-white/70 text-[9px] px-2 py-1 rounded hover:bg-white/10">Note</button>
+                    <button id="setThemeSwitchOption" class="vfx-btn bg-white/5 border border-white/10 text-white/70 text-[9px] px-2 py-1 rounded hover:bg-white/10">SwitchThemeSet</button>
                 </div>
             </div>
             <div>
@@ -374,28 +371,63 @@
         </button>
     </div>
 
-    <!-- Sprite Editor Modal -->
-    <div id="spriteModal" class="sprite-modal">
+    <!-- Theme Settings Modal -->
+    <div id="spriteModal" class="sprite-modal !w-[95vw] !max-w-[1200px]">
         <div class="flex justify-between items-center mb-4">
-            <div class="flex items-end gap-6">
-                <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-2">Boundary Editor</h3>
-                <div class="flex gap-2">
-                    <button id="tabNormalBtn" class="sprite-tab-btn active">Normal Note</button>
-                    <button id="tabLongBtn" class="sprite-tab-btn">Long Note</button>
+            <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest">Theme Settings</h3>
+            <button id="closeSpriteBtn" class="text-white/50 hover:text-white text-xl">&times;</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[65%_1fr] gap-6">
+            <!-- Asset Management Sidebar -->
+            <div class="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-2 no-scrollbar">
+                <!-- Backgrounds Section -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-4">
+                        <label class="text-[9px] font-mono text-cyan-400 uppercase tracking-widest w-20 shrink-0">Background</label>
+                        <div id="bgList" class="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-white/5 rounded border border-dashed border-white/10 flex-grow min-h-[60px]"></div>
+                        <button onclick="document.getElementById('bgInput').click()" class="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded border border-white/10 shrink-0 text-xl">+</button>
+                        <input type="file" id="bgInput" accept="image/*" class="hidden" multiple>
+                    </div>
+                </div>
+
+                <!-- Short Notes Section -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-4">
+                        <label class="text-[9px] font-mono text-pink-400 uppercase tracking-widest w-20 shrink-0">Short Note</label>
+                        <div id="noteList" class="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-white/5 rounded border border-dashed border-white/10 flex-grow min-h-[60px]"></div>
+                        <button onclick="document.getElementById('noteSpriteInput').click()" class="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded border border-white/10 shrink-0 text-xl">+</button>
+                        <input type="file" id="noteSpriteInput" accept="image/*" class="hidden" multiple>
+                    </div>
+                </div>
+
+                <!-- Long Notes Section -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-4">
+                        <label class="text-[9px] font-mono text-orange-400 uppercase tracking-widest w-20 shrink-0">Long Note</label>
+                        <div id="longNoteList" class="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-white/5 rounded border border-dashed border-white/10 flex-grow min-h-[60px]"></div>
+                        <button onclick="document.getElementById('longNoteSpriteInput').click()" class="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded border border-white/10 shrink-0 text-xl">+</button>
+                        <input type="file" id="longNoteSpriteInput" accept="image/*" class="hidden" multiple>
+                    </div>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button id="spriteUploadBtn" class="px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] uppercase font-bold text-white hover:bg-pink-500/20">Upload New</button>
-                <button id="clearTextureBtn" class="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded text-[10px] uppercase font-bold text-red-400 hover:bg-red-500/20">Clear</button>
-                <button id="saveSpriteBtn" class="px-3 py-1 bg-pink-500 rounded text-[10px] uppercase font-bold text-white shadow-lg">Save</button>
-                <button id="closeSpriteBtn" class="px-3 py-1 bg-white/5 rounded text-[10px] uppercase font-bold text-white/50">&times;</button>
+
+            <!-- Editor Area -->
+            <div class="flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <div id="editorTitle" class="text-[10px] font-bold text-white/50 uppercase tracking-widest">Select an asset to edit</div>
+                    <div class="flex gap-2">
+                        <button id="saveSpriteBtn" class="px-3 py-1 bg-pink-500 rounded text-[10px] uppercase font-bold text-white shadow-lg">Apply Changes</button>
+                    </div>
+                </div>
+                <div class="relative bg-[#050507] rounded-lg overflow-hidden border border-white/10 flex items-center justify-center p-4 h-[50vh] lg:h-[60vh]">
+                    <canvas id="spriteEditorCanvas" class="shadow-2xl"></canvas>
+                </div>
+                <div id="editorHint" class="text-[9px] text-white/40 font-mono italic text-center">
+                    Use Spacebar in Live Preview to cycle through theme sets.
+                </div>
             </div>
         </div>
-        <div class="relative bg-[#050507] rounded-lg overflow-hidden border border-white/10 flex items-center justify-center p-4" style="height: 65vh;">
-            <canvas id="spriteEditorCanvas" class="shadow-2xl"></canvas>
-        </div>
-        <div id="hintNormal" class="text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag corners to set the single-note crop. This will be centered in lanes.</div>
-        <div id="hintLong" class="hidden text-[9px] text-white/40 mt-3 font-mono italic text-center">Drag the 4 grid lines to set 9-Slice boundaries. Corners stay fixed; edges and center stretch to fill.</div>
     </div>
 
     <footer class="h-20 flex-shrink-0 bg-[#0a0a0c] border-t border-white/10 px-4 flex items-center justify-between gap-4 z-50 overflow-hidden">
@@ -406,27 +438,33 @@
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Zoom</label>
-                <input type="range" id="zoomInput" min="50" max="2500" step="50" value="300" class="w-16 lg:w-24 accent-cyan-400">
+                <input type="range" id="zoomInput" min="50" max="2500" step="50" value="300" class="w-16 lg:w-24 accent-pink-400">
+                <input type="number" id="zoomValue" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Live Speed</label>
                 <input type="range" id="liveSpeedInput" min="200" max="2500" step="50" value="625" class="w-16 lg:w-24 accent-pink-400">
+                <input type="number" id="liveSpeedValue" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Speed Lerp</label>
-                <input type="range" id="speedLerpInput" min="0" max="2" step="0.05" value="0" class="w-16 lg:w-24 accent-cyan-400">
+                <input type="range" id="speedLerpInput" min="0" max="2" step="0.05" value="0" class="w-16 lg:w-24 accent-pink-400">
+                <input type="number" id="speedLerpValue" step="0.05" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Note Height</label>
-                <input type="range" id="thicknessInput" min="4" max="192" step="2" value="18" class="w-16 accent-cyan-400">
+                <input type="range" id="thicknessInput" min="4" max="192" step="2" value="18" class="w-16 accent-pink-400">
+                <input type="number" id="thicknessValue" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Note Width</label>
                 <input type="range" id="widthScaleInput" min="10" max="100" step="1" value="80" class="w-16 accent-pink-400">
+                <input type="number" id="widthScaleValue" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Vfx Alpha</label>
-                <input type="range" id="vfxAlphaInput" min="0" max="1" step="0.05" value="0.25" class="w-16 lg:w-20 accent-cyan-400">
+                <input type="range" id="vfxAlphaInput" min="0" max="1" step="0.05" value="0.25" class="w-16 lg:w-20 accent-pink-400">
+                <input type="number" id="vfxAlphaValue" step="0.05" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
             <div class="hidden sm:flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Invert</label>
@@ -438,6 +476,7 @@
             <div class="hidden md:flex flex-col gap-0.5 shrink-0">
                 <label class="text-[7px] font-mono text-white/30 uppercase tracking-widest">Volume</label>
                 <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.5" class="w-12 lg:w-16 accent-pink-400">
+                <input type="number" id="volumeValue" step="0.1" class="bg-transparent text-[9px] text-pink-400 w-12 outline-none border-b border-white/10 text-center">
             </div>
         </div>
 
