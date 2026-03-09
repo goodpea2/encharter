@@ -19,10 +19,10 @@ let waveformPeaks = null;
 const PEAK_RESOLUTION = 10000; 
 
 let lanes = [
-    { id: 0, type: 'note' },
-    { id: 1, type: 'note' },
-    { id: 2, type: 'note' },
-    { id: 3, type: 'note' }
+    { id: 0, type: 'note', key: 'z' },
+    { id: 1, type: 'note', key: 'c' },
+    { id: 2, type: 'note', key: 'b' },
+    { id: 3, type: 'note', key: 'm' }
 ];
 let events = [];
 let activeBurstVFX = [];
@@ -38,6 +38,12 @@ let noteThicknessLive = 18;
 let noteWidthScale = 0.8; 
 let vfxAlpha = 0.25;
 let isPlaying = false;
+let isRecording = false;
+let recordedEvents = [];
+let recordingBuffers = new Map(); // laneId -> Array of ticks
+let recordingGhostNotes = new Map(); // laneId -> startTick
+let lastRecordedTick = -1;
+let pressedKeys = new Set();
 let startTime = 0;
 let pauseOffset = 0;
 let audioOffset = 0; 
@@ -74,7 +80,7 @@ let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
 let displayScale = 1.0;
 
 // -- DOM Elements --
-let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
+let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, recordBtn, recordingControls, saveRecordBtn, discardRecordBtn, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, laneKeyRow, laneHighlightLayer, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
 let bgInput, noteSpriteInput, longNoteSpriteInput, themeSettingsBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn;
 let bgList, noteList, longNoteList, editorTitle, editorHint;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
@@ -88,6 +94,10 @@ function init() {
     playBtn = document.getElementById('playBtn');
     playIcon = document.getElementById('playIcon');
     pauseIcon = document.getElementById('pauseIcon');
+    recordBtn = document.getElementById('recordBtn');
+    recordingControls = document.getElementById('recordingControls');
+    saveRecordBtn = document.getElementById('saveRecordBtn');
+    discardRecordBtn = document.getElementById('discardRecordBtn');
     bpmInput = document.getElementById('bpmInput');
     volumeSlider = document.getElementById('volumeSlider');
     zoomInput = document.getElementById('zoomInput');
@@ -104,6 +114,8 @@ function init() {
     currentTimeDisplay = document.getElementById('currentTimeDisplay');
     offsetDisplay = document.getElementById('offsetDisplay');
     laneHeaders = document.getElementById('laneHeaders');
+    laneKeyRow = document.getElementById('laneKeyRow');
+    laneHighlightLayer = document.getElementById('laneHighlightLayer');
 
     vfxModal = document.getElementById('vfxModal');
     burstVfxList = document.getElementById('burstVfxList');
@@ -215,6 +227,9 @@ function setupListeners() {
     });
 
     playBtn.addEventListener('click', togglePlayback);
+    recordBtn.addEventListener('click', toggleRecording);
+    saveRecordBtn.addEventListener('click', saveRecording);
+    discardRecordBtn.addEventListener('click', discardRecording);
     exportBtn.addEventListener('click', exportProject);
     importBtn.addEventListener('click', () => projectInput.click());
     addLaneBtn.addEventListener('click', addNewLane);
@@ -248,13 +263,73 @@ function setupListeners() {
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
 
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && !spriteEditorActive && document.activeElement.tagName !== 'INPUT') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        
+        const key = e.key.toLowerCase();
+        
+        // Handle recording start for this key
+        if (!pressedKeys.has(key)) {
+            lanes.forEach(lane => {
+                if (lane.key === key) {
+                    const hl = document.getElementById(`hl-${lane.id}`);
+                    if (hl) hl.classList.add('bg-pink-500/15');
+
+                    if (isPlaying && isRecording && lane.type === 'note') {
+                        const currentTime = audioEngine.currentTime - startTime;
+                        const currentTick = Math.floor(timeToTick(currentTime, bpm) / 3) * 3;
+                        if (!recordingBuffers.has(lane.id)) recordingBuffers.set(lane.id, []);
+                        recordingBuffers.get(lane.id).push(currentTick);
+                        recordingGhostNotes.set(lane.id, currentTick);
+                    }
+                }
+            });
+        }
+
+        pressedKeys.add(key);
+
+        if (e.code === 'Space' && !spriteEditorActive) {
             e.preventDefault();
             const maxLen = Math.max(backgrounds.length, shortNotes.length, longNotes.length);
             if (maxLen > 0) {
                 currentThemeIndex = (currentThemeIndex + 1) % maxLen;
             }
         }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        pressedKeys.delete(key);
+
+        lanes.forEach(lane => {
+            if (lane.key === key) {
+                const hl = document.getElementById(`hl-${lane.id}`);
+                if (hl) hl.classList.remove('bg-pink-500/15');
+
+                if (isRecording && lane.type === 'note' && recordingBuffers.has(lane.id)) {
+                    recordingGhostNotes.delete(lane.id);
+                    const buffer = recordingBuffers.get(lane.id);
+                    if (buffer.length > 0) {
+                        if (buffer.length < 8) {
+                            // Short press: convert to single note at nearest grid snap
+                            const firstTick = buffer[0];
+                            const snappedTick = Math.round(firstTick / gridSnap) * gridSnap;
+                            recordedEvents.push({ id: nextId++, laneId: lane.id, tick: snappedTick });
+                        } else {
+                            // Long press: snap start and end
+                            const startTick = buffer[0];
+                            const endTick = buffer[buffer.length - 1];
+                            const snappedStart = Math.round(startTick / gridSnap) * gridSnap;
+                            const snappedEnd = Math.round(endTick / gridSnap) * gridSnap;
+                            for (let t = snappedStart; t <= snappedEnd; t += 3) {
+                                recordedEvents.push({ id: nextId++, laneId: lane.id, tick: t });
+                            }
+                        }
+                    }
+                    recordingBuffers.delete(lane.id);
+                    updateRecordingUI();
+                }
+            }
+        });
     });
 
     document.getElementById('closeModalBtn')?.addEventListener('click', () => { vfxModal.style.display = 'none'; });
@@ -272,6 +347,8 @@ function setupListeners() {
         isRightDragging = false;
         isMiddleDragging = false;
         dragTarget = null;
+        pressedKeys.clear();
+        recordingBuffers.clear();
     });
 
     const initResizer = (resizer, targetPanel, isRightSide) => {
@@ -619,6 +696,8 @@ function saveSpriteRect() {
 
 function renderLaneHeaders() {
     laneHeaders.innerHTML = '';
+    laneKeyRow.innerHTML = '';
+    laneHighlightLayer.innerHTML = '';
     lanes.forEach(lane => {
         const div = document.createElement('div');
         div.className = 'lane-label';
@@ -626,6 +705,26 @@ function renderLaneHeaders() {
         div.textContent = label;
         div.onclick = () => openVfxModal(lane.id);
         laneHeaders.appendChild(div);
+
+        const keyDiv = document.createElement('div');
+        keyDiv.className = 'flex-1 flex items-center justify-center border-r border-white/5';
+        if (lane.type === 'note') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 1;
+            input.value = lane.key || '';
+            input.className = 'w-6 h-6 bg-white/5 border border-white/10 rounded text-[9px] text-center text-pink-400 font-mono outline-none focus:border-pink-500 transition-all';
+            input.oninput = (e) => {
+                lane.key = e.target.value.toLowerCase();
+            };
+            keyDiv.appendChild(input);
+        }
+        laneKeyRow.appendChild(keyDiv);
+
+        const hl = document.createElement('div');
+        hl.className = 'flex-1 h-full pointer-events-none transition-colors duration-75';
+        hl.id = `hl-${lane.id}`;
+        laneHighlightLayer.appendChild(hl);
     });
 }
 
@@ -755,6 +854,60 @@ async function handleAudioUpload(e) {
     } catch (err) { alert("Audio decode failed."); }
 }
 
+async function toggleRecording() {
+    isRecording = !isRecording;
+    if (isRecording) {
+        recordBtn.classList.remove('bg-white/5', 'border-white/10', 'text-white/40');
+        recordBtn.classList.add('bg-red-500', 'border-red-600', 'text-white');
+    } else {
+        recordBtn.classList.add('bg-white/5', 'border-white/10', 'text-white/40');
+        recordBtn.classList.remove('bg-red-500', 'border-red-600', 'text-white');
+        // Flush buffers
+        recordingBuffers.clear();
+    }
+}
+
+function updateRecordingUI() {
+    if (recordedEvents.length > 0) {
+        recordingControls.classList.remove('hidden');
+    } else {
+        recordingControls.classList.add('hidden');
+    }
+}
+
+function saveRecording() {
+    if (recordedEvents.length === 0) return;
+    
+    // Find range
+    let minTick = Infinity;
+    let maxTick = -Infinity;
+    const affectedLaneIds = new Set();
+    
+    recordedEvents.forEach(e => {
+        minTick = Math.min(minTick, e.tick);
+        maxTick = Math.max(maxTick, e.tick);
+        affectedLaneIds.add(e.laneId);
+    });
+
+    // Clear existing events in range for affected lanes
+    events = events.filter(e => {
+        if (affectedLaneIds.has(e.laneId) && e.tick >= minTick && e.tick <= maxTick) {
+            return false;
+        }
+        return true;
+    });
+
+    // Add recorded events
+    events.push(...recordedEvents);
+    recordedEvents = [];
+    updateRecordingUI();
+}
+
+function discardRecording() {
+    recordedEvents = [];
+    updateRecordingUI();
+}
+
 async function togglePlayback() {
     await audioEngine.resume();
     isPlaying ? pausePlayback() : startPlayback();
@@ -822,6 +975,15 @@ function drawEditor(currentTime) {
     const timePerBeat = tickToTime(TICKS_PER_BAR / BEATS_PER_BAR, bpm);
     const timePerBar = tickToTime(TICKS_PER_BAR, bpm);
     const firstBar = Math.floor(timeMin / timePerBar) * timePerBar;
+
+    // Lane Highlights (Fallback for non-DOM or extra visual)
+    lanes.forEach((lane, i) => {
+        if (lane.key && pressedKeys.has(lane.key.toLowerCase())) {
+            ctxEdit.fillStyle = 'rgba(255, 113, 206, 0.05)';
+            ctxEdit.fillRect(i * laneWidth, 0, laneWidth, height);
+        }
+    });
+
     for (let t = firstBar; t < timeMax; t += timePerBeat) {
         const y = hitZoneY - (t - currentTime) * pixelsPerSecondEditor;
         const tickCount = timeToTick(t, bpm);
@@ -844,6 +1006,28 @@ function drawEditor(currentTime) {
                 ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
             }
         });
+
+        // Draw recorded events in red
+        recordedEvents.filter(e => e.laneId === lane.id).forEach(e => {
+            const eventTime = tickToTime(e.tick, bpm);
+            if (eventTime >= timeMin && eventTime <= timeMax) {
+                const y = hitZoneY - (eventTime - currentTime) * pixelsPerSecondEditor;
+                ctxEdit.fillStyle = '#ef4444'; // Red-500
+                ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
+            }
+        });
+
+        // Draw ghost notes (active recording)
+        if (recordingGhostNotes.has(lane.id)) {
+            const startTick = recordingGhostNotes.get(lane.id);
+            const currentTick = Math.floor(timeToTick(currentTime, bpm) / 3) * 3;
+            const startT = tickToTime(startTick, bpm);
+            const endT = tickToTime(currentTick, bpm);
+            const yStart = hitZoneY - (startT - currentTime) * pixelsPerSecondEditor;
+            const yEnd = hitZoneY - (endT - currentTime) * pixelsPerSecondEditor;
+            ctxEdit.fillStyle = 'rgba(252, 165, 165, 0.6)'; // Light red
+            ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, yEnd - 4, laneWidth - 16, Math.max(8, yStart - yEnd), 4); ctxEdit.fill();
+        }
     });
     if (ghostEvent) {
         const laneIdx = lanes.findIndex(l => l.id === ghostEvent.laneId);
@@ -891,7 +1075,9 @@ function drawPreview(currentTime) {
 
     noteLanes.forEach((lane, laneIdx) => {
         const segments = getNoteSegments(lane.id, events);
-        segments.forEach(seg => {
+        const recordedSegments = getNoteSegments(lane.id, recordedEvents);
+
+        const drawSeg = (seg, isRecorded, isGhost) => {
             const startT = tickToTime(seg.startTick, bpm);
             const endT = tickToTime(seg.endTick, bpm);
             if (endT < currentTime || startT > timeMaxInView) return;
@@ -909,26 +1095,39 @@ function drawPreview(currentTime) {
             const y2 = getVisualY(endT);
             const visualWidth = laneWidth * noteWidthScale;
             const destX = laneIdx * laneWidth + (laneWidth - visualWidth) / 2;
+            
+            const noteColor = isGhost ? 'rgba(252, 165, 165, 0.6)' : (isRecorded ? '#ef4444' : (seg.isLong ? LONG_NOTE_COLOR : NOTE_COLOR));
+
             if (seg.isLong) {
                 const startEdgeY = y1 + noteThicknessLive/2;
                 const endEdgeY = y2 - noteThicknessLive/2;
                 const destH = Math.max(noteThicknessLive, startEdgeY - endEdgeY);
-                if (ln) {
+                if (ln && !isRecorded && !isGhost) {
                     draw9Slice(ctxPrev, ln.img, ln.rect, destX, endEdgeY, visualWidth, destH);
                 } else {
-                    ctxPrev.fillStyle = LONG_NOTE_COLOR; ctxPrev.shadowBlur = 15; ctxPrev.shadowColor = LONG_NOTE_COLOR;
+                    ctxPrev.fillStyle = noteColor; ctxPrev.shadowBlur = isGhost ? 0 : 15; ctxPrev.shadowColor = noteColor;
                     ctxPrev.beginPath(); ctxPrev.roundRect(destX, endEdgeY, visualWidth, destH, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
                 }
             } else {
                 const destY = y1 - noteThicknessLive/2;
-                if (sn) {
+                if (sn && !isRecorded && !isGhost) {
                     ctxPrev.drawImage(sn.img, sn.rect.x, sn.rect.y, sn.rect.w, sn.rect.h, destX, destY, visualWidth, noteThicknessLive);
                 } else {
-                    ctxPrev.fillStyle = NOTE_COLOR; ctxPrev.shadowBlur = 20; ctxPrev.shadowColor = NOTE_COLOR;
+                    ctxPrev.fillStyle = noteColor; ctxPrev.shadowBlur = isGhost ? 0 : 20; ctxPrev.shadowColor = noteColor;
                     ctxPrev.beginPath(); ctxPrev.roundRect(destX, destY, visualWidth, noteThicknessLive, 4); ctxPrev.fill(); ctxPrev.shadowBlur = 0;
                 }
             }
-        });
+        };
+
+        segments.forEach(seg => drawSeg(seg, false));
+        recordedSegments.forEach(seg => drawSeg(seg, true));
+
+        // Draw ghost note in preview
+        if (recordingGhostNotes.has(lane.id)) {
+            const startTick = recordingGhostNotes.get(lane.id);
+            const currentTick = Math.floor(timeToTick(currentTime, bpm) / 3) * 3;
+            drawSeg({ startTick, endTick: currentTick, isLong: (currentTick - startTick > 8) }, true, true);
+        }
     });
 }
 
@@ -944,7 +1143,24 @@ let lastFrameTime = 0;
 function renderLoop() {
     const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
     drawWaveform(currentTime); drawEditor(currentTime); drawPreview(currentTime); updateTimeDisplay(currentTime);
+    
     if (isPlaying) {
+        if (isRecording) {
+            const currentTick = Math.floor(timeToTick(currentTime, bpm) / 3) * 3;
+            if (currentTick !== lastRecordedTick) {
+                lanes.forEach(lane => {
+                    if (lane.type === 'note' && lane.key && pressedKeys.has(lane.key.toLowerCase())) {
+                        if (!recordingBuffers.has(lane.id)) recordingBuffers.set(lane.id, []);
+                        const buffer = recordingBuffers.get(lane.id);
+                        if (!buffer.includes(currentTick)) {
+                            buffer.push(currentTick);
+                        }
+                    }
+                });
+                lastRecordedTick = currentTick;
+            }
+        }
+
         const noteLanes = lanes.filter(l => l.type === 'note');
         events.forEach(e => {
             const eventTime = tickToTime(e.tick, bpm);
