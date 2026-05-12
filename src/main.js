@@ -189,11 +189,40 @@ async function loadDefaultData() {
         if (projectRes.ok) {
             const data = await projectRes.json();
             lanes = data.lanes || [];
-            events = data.events || [];
+            
+            const importedEvents = data.events || [];
+            const internalEvents = [];
+            let maxId = 0;
+            
+            importedEvents.forEach(e => {
+                const eventId = e.id !== undefined ? e.id : maxId++;
+                if (eventId >= maxId) maxId = eventId + 1;
+
+                if (e.tick !== undefined && e.endTick !== undefined && e.endTick > e.tick) {
+                    for (let t = e.tick; t <= e.endTick; t += HOLD_GAP_THRESHOLD) {
+                        const newId = maxId++;
+                        internalEvents.push({
+                            laneId: e.laneId,
+                            tick: t,
+                            id: newId,
+                            ...(e.vfxType ? { vfxType: e.vfxType } : {})
+                        });
+                    }
+                } else {
+                    internalEvents.push({
+                        laneId: e.laneId,
+                        tick: e.tick,
+                        id: eventId,
+                        ...(e.vfxType ? { vfxType: e.vfxType } : {})
+                    });
+                }
+            });
+            
+            events = internalEvents;
             audioOffset = data.audioOffset || 0;
             bpm = data.bpm || 120;
             bpmInput.value = bpm;
-            nextId = events.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+            nextId = maxId;
             updateOffsetDisplay();
             renderLaneHeaders();
         }
@@ -785,7 +814,35 @@ function deleteCurrentLane() {
 }
 
 function exportProject() {
-    const data = { lanes, events, audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "4.2" };
+    const exportedEvents = [];
+    lanes.forEach(lane => {
+        const segments = getNoteSegments(lane.id, events);
+        segments.forEach(seg => {
+            const representationEvent = events.find(e => e.id === seg.eventIds[0]) || {};
+            const extraProps = representationEvent.vfxType ? { vfxType: representationEvent.vfxType } : {};
+
+            if (seg.isLong) {
+                exportedEvents.push({
+                    laneId: lane.id,
+                    tick: seg.startTick,
+                    endTick: seg.endTick,
+                    id: seg.eventIds[0],
+                    ...extraProps
+                });
+            } else {
+                exportedEvents.push({
+                    laneId: lane.id,
+                    tick: seg.startTick,
+                    id: seg.eventIds[0],
+                    ...extraProps
+                });
+            }
+        });
+    });
+    // Sort events by tick for a clean output order
+    exportedEvents.sort((a, b) => a.tick - b.tick);
+
+    const data = { lanes, events: exportedEvents, audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "5.0" };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -802,11 +859,41 @@ async function handleProjectImportFile(e) {
         const text = await file.text();
         const data = JSON.parse(text);
         lanes = data.lanes || [];
-        events = data.events || [];
+        
+        const importedEvents = data.events || [];
+        const internalEvents = [];
+        let maxId = 0;
+        
+        importedEvents.forEach(e => {
+            const eventId = e.id !== undefined ? e.id : maxId++;
+            if (eventId >= maxId) maxId = eventId + 1;
+
+            if (e.tick !== undefined && e.endTick !== undefined && e.endTick > e.tick) {
+                // Expanding LongNote to step-by-step ticks in editor state
+                for (let t = e.tick; t <= e.endTick; t += HOLD_GAP_THRESHOLD) {
+                    const newId = maxId++;
+                    internalEvents.push({
+                        laneId: e.laneId,
+                        tick: t,
+                        id: newId,
+                        ...(e.vfxType ? { vfxType: e.vfxType } : {})
+                    });
+                }
+            } else {
+                internalEvents.push({
+                    laneId: e.laneId,
+                    tick: e.tick,
+                    id: eventId,
+                    ...(e.vfxType ? { vfxType: e.vfxType } : {})
+                });
+            }
+        });
+        
+        events = internalEvents;
         audioOffset = data.audioOffset || 0;
         bpm = data.bpm || 120;
         bpmInput.value = bpm;
-        nextId = events.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+        nextId = maxId;
         updateOffsetDisplay();
         renderLaneHeaders();
     } catch (err) { alert("Load Error"); }
@@ -941,9 +1028,6 @@ function triggerVFX(laneId, type) {
     }
     if (BURST_VFX.includes(type)) {
         activeBurstVFX.push({ type, startTime: performance.now(), progress: 0, active: true, laneId, randomSeed: Math.random() });
-    } else if (IDLE_VFX.includes(type)) {
-        if (loopingVFX.get(laneId) === type) loopingVFX.delete(laneId);
-        else loopingVFX.set(laneId, type);
     }
 }
 
@@ -1143,6 +1227,18 @@ let lastFrameTime = 0;
 function renderLoop() {
     const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
     drawWaveform(currentTime); drawEditor(currentTime); drawPreview(currentTime); updateTimeDisplay(currentTime);
+    
+    // Declaratively determine active looping (IDLE) VFX
+    loopingVFX.clear();
+    const currentTick = timeToTick(currentTime, bpm);
+    lanes.forEach(lane => {
+        if (lane.type === 'vfx' && lane.vfxType && IDLE_VFX.includes(lane.vfxType)) {
+            const segments = getNoteSegments(lane.id, events);
+            if (segments.some(seg => currentTick >= seg.startTick && currentTick <= seg.endTick)) {
+                loopingVFX.set(lane.id, lane.vfxType);
+            }
+        }
+    });
     
     if (isPlaying) {
         if (isRecording) {
