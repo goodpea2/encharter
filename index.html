@@ -285,8 +285,12 @@
             <div id="waveformPanel" class="view-panel-container">
                 <div class="h-10 px-3 bg-[#0d0d0f] border-b border-white/5 text-[9px] font-mono text-pink-400 uppercase tracking-widest flex items-center justify-between shrink-0 z-10 overflow-hidden">
                     <span class="truncate">WAVE</span>
-                    <div class="flex gap-2">
-                        <span id="offsetDisplay" class="text-white/40 text-[7px]">0ms</span>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[7px] opacity-40">DELAY</span>
+                            <input type="range" id="offsetSlider" min="-1000" max="1000" step="1" value="0" class="w-16 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-pink-500">
+                        </div>
+                        <span id="offsetDisplay" class="text-white/40 text-[7px] min-w-[30px] text-right">0ms</span>
                     </div>
                 </div>
                 <div class="editor-container">
@@ -348,6 +352,7 @@
                 Lane Config
                 <button id="closeModalBtn" class="text-white/50 hover:text-white">&times;</button>
             </h3>
+            <p class="text-[8px] text-white/40 font-mono italic mt-1">Tip: Drag & drop column headers directly to reorder!</p>
         </div>
         
         <div id="vfxSelector" class="space-y-4 max-h-80 overflow-y-auto pr-2 no-scrollbar">
@@ -365,6 +370,22 @@
             <div>
                 <div class="text-[8px] font-mono text-cyan-400 uppercase mb-2">Idle VFX (Loop)</div>
                 <div id="idleVfxList" class="flex flex-wrap gap-1"></div>
+            </div>
+            
+            <div class="border-t border-white/5 pt-3">
+                <div class="text-[8px] font-mono text-pink-400 uppercase mb-2">Custom VFX (Export Only)</div>
+                <div class="flex gap-2">
+                    <input type="text" id="customVfxInput" placeholder="e.g. MySpecialVFX" class="flex-grow bg-[#1a1a1f] border border-white/10 text-white text-[10px] px-2 py-1.5 rounded outline-none focus:border-pink-500 font-mono transition-all">
+                    <button id="applyCustomVfxBtn" class="bg-pink-500/20 border border-pink-500/30 hover:bg-pink-500/30 text-pink-400 text-[10px] uppercase font-bold px-3 py-1.5 rounded transition-all shrink-0">Apply</button>
+                </div>
+            </div>
+
+            <div class="border-t border-white/5 pt-3">
+                <div class="text-[8px] font-mono text-pink-400 uppercase mb-2">Reorder Column Position</div>
+                <div class="flex gap-2">
+                    <button id="moveLaneLeftBtn" class="flex-1 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-mono uppercase rounded transition-all">← Move Left</button>
+                    <button id="moveLaneRightBtn" class="flex-1 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-mono uppercase rounded transition-all">Move Right →</button>
+                </div>
             </div>
         </div>
 

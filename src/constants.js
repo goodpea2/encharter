@@ -11,14 +11,20 @@ export const WAVEFORM_COLOR = '#fce4ec';
 export const HOLD_GAP_THRESHOLD = 3; // 1/32 bar (96 / 32)
 
 export const BURST_VFX = [
-    'explode1', 'explode2', 'explode3', 
-    'wipeUp', 'wipeDown', 'wipeLeft', 'wipeRight', 
-    'light1', 'light2', 'light3',
-    'glitter1', 'glitter2', 'glitter3',
-    'heart1', 'heart2', 'heart3'
+    'LightBottom', 'LightTop', 'LightSwipeUp', 'LightSwipeDown',
+    'CircleTopL', 'CircleTop', 'CircleTopR',
+    'CircleTopThinL', 'CircleTopThin', 'CircleTopThinR',
+    'LaserTop', 'ElectricTop',
+    'BurstConfetti', 'BurstFirework', 'BurstHeart',
+    'FlashSide', 'SideSwipeUp', 'SideSwipeDown',
+    'BurstSideGlitter', 'BurstSideDots', 'BurstSideElectric',
+    'SuperFlashBeam', 'FlashFull', 'SuperFlashFull',
+    'D1_CircleBuildUp', 'D2_CircleBuildUp',
+    'D1_LightBuildUp', 'D2_LightBuildUp',
+    'SongComplete'
 ];
 export const IDLE_VFX = [
-    'sparkle1', 'sparkle2', 'sparkle3',
-    'flames1', 'flames2', 'flames3',
-    'confetti1', 'confetti2', 'confetti3'
+    'LoopGlitter', 'LoopConfetti', 'LoopFireAsh', 'LoopRain', 'LoopSnow',
+    'LoopDiscoBall', 'LoopVirus',
+    'FeverFire', 'FeverRainbow', 'FeverGolden', 'FeverSpeed'
 ];

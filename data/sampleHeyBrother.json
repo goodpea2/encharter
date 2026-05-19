@@ -17,49 +17,99 @@
       "type": "note"
     },
     {
-      "id": 4,
-      "type": "vfx",
-      "vfxType": "explode1"
-    },
-    {
-      "id": 5,
-      "type": "vfx",
-      "vfxType": "explode2"
-    },
-    {
       "id": 6,
       "type": "vfx",
-      "vfxType": "light1"
+      "vfxType": "LightTop"
     },
     {
       "id": 7,
       "type": "vfx",
-      "vfxType": "light2"
+      "vfxType": "LightBottom"
     },
     {
       "id": 8,
       "type": "vfx",
-      "vfxType": "wipeUp"
+      "vfxType": "LightSwipeUp"
     },
     {
       "id": 9,
       "type": "vfx",
-      "vfxType": "wipeDown"
+      "vfxType": "LightSwipeDown"
     },
     {
-      "id": 10,
+      "id": 13,
       "type": "vfx",
-      "vfxType": "wipeRight"
+      "vfxType": "CircleTopL"
+    },
+    {
+      "id": 4,
+      "type": "vfx",
+      "vfxType": "CircleTop"
+    },
+    {
+      "id": 14,
+      "type": "vfx",
+      "vfxType": "CircleTopR"
+    },
+    {
+      "id": 107,
+      "type": "vfx",
+      "vfxType": "BurstFirework"
+    },
+    {
+      "id": 15,
+      "type": "vfx",
+      "vfxType": "SuperFlashFull"
+    },
+    {
+      "id": 102,
+      "type": "vfx",
+      "vfxType": "FlashSide"
+    },
+    {
+      "id": 5,
+      "type": "vfx",
+      "vfxType": "BurstGlitter"
+    },
+    {
+      "id": 101,
+      "type": "vfx",
+      "vfxType": "D1_CircleBuildUp"
+    },
+    {
+      "id": 105,
+      "type": "vfx",
+      "vfxType": "D2_LightBuildUp"
+    },
+    {
+      "id": 103,
+      "type": "vfx",
+      "vfxType": "SideSwipeUp"
+    },
+    {
+      "id": 104,
+      "type": "vfx",
+      "vfxType": "SideSwipeDown"
     },
     {
       "id": 11,
       "type": "vfx",
-      "vfxType": "sparkle1"
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "id": 106,
+      "type": "vfx",
+      "vfxType": "LoopFireAsh"
     },
     {
       "id": 12,
       "type": "vfx",
-      "vfxType": "confetti2"
+      "vfxType": "FeverFire"
+    },
+    {
+      "id": 100,
+      "type": "vfx",
+      "vfxType": "SongComplete"
     }
   ],
   "events": [
@@ -67,7 +117,8 @@
       "laneId": 11,
       "tick": 24,
       "endTick": 96,
-      "id": 1296
+      "id": 1299,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -78,7 +129,7 @@
       "laneId": 2,
       "tick": 96,
       "endTick": 192,
-      "id": 67
+      "id": 1324
     },
     {
       "laneId": 0,
@@ -128,7 +179,8 @@
     {
       "laneId": 6,
       "tick": 288,
-      "id": 987
+      "id": 987,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 1,
@@ -148,7 +200,8 @@
     {
       "laneId": 6,
       "tick": 336,
-      "id": 988
+      "id": 988,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 0,
@@ -168,7 +221,8 @@
     {
       "laneId": 6,
       "tick": 384,
-      "id": 989
+      "id": 989,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 1,
@@ -179,29 +233,31 @@
       "laneId": 0,
       "tick": 432,
       "endTick": 480,
-      "id": 160
+      "id": 1357
     },
     {
       "laneId": 1,
       "tick": 432,
       "endTick": 480,
-      "id": 120
+      "id": 1374
     },
     {
       "laneId": 6,
       "tick": 432,
-      "id": 997
+      "id": 997,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 2,
       "tick": 528,
       "endTick": 624,
-      "id": 123
+      "id": 1391
     },
     {
-      "laneId": 8,
+      "laneId": 4,
       "tick": 528,
-      "id": 1012
+      "id": 4951,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 0,
@@ -209,9 +265,10 @@
       "id": 155
     },
     {
-      "laneId": 9,
+      "laneId": 7,
       "tick": 624,
-      "id": 1013
+      "id": 4949,
+      "vfxType": "LightBottom"
     },
     {
       "laneId": 1,
@@ -241,7 +298,8 @@
     {
       "laneId": 6,
       "tick": 720,
-      "id": 1014
+      "id": 1014,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 1,
@@ -261,7 +319,8 @@
     {
       "laneId": 6,
       "tick": 768,
-      "id": 1015
+      "id": 1015,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 0,
@@ -281,7 +340,8 @@
     {
       "laneId": 6,
       "tick": 816,
-      "id": 1016
+      "id": 1016,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 1,
@@ -301,7 +361,8 @@
     {
       "laneId": 6,
       "tick": 864,
-      "id": 1017
+      "id": 1017,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 2,
@@ -312,18 +373,19 @@
       "laneId": 2,
       "tick": 960,
       "endTick": 1008,
-      "id": 229
+      "id": 1424
     },
     {
       "laneId": 3,
       "tick": 960,
       "endTick": 1008,
-      "id": 212
+      "id": 1441
     },
     {
       "laneId": 4,
       "tick": 960,
-      "id": 1018
+      "id": 2562,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 1,
@@ -346,14 +408,10 @@
       "id": 264
     },
     {
-      "laneId": 6,
-      "tick": 1056,
-      "id": 1273
-    },
-    {
       "laneId": 8,
       "tick": 1056,
-      "id": 1267
+      "id": 2563,
+      "vfxType": "wipeUp"
     },
     {
       "laneId": 2,
@@ -373,12 +431,8 @@
     {
       "laneId": 6,
       "tick": 1104,
-      "id": 1272
-    },
-    {
-      "laneId": 10,
-      "tick": 1104,
-      "id": 1269
+      "id": 1272,
+      "vfxType": "LightTop"
     },
     {
       "laneId": 1,
@@ -389,23 +443,19 @@
       "laneId": 2,
       "tick": 1152,
       "endTick": 1200,
-      "id": 270
+      "id": 2565
     },
     {
       "laneId": 3,
       "tick": 1152,
       "endTick": 1200,
-      "id": 271
-    },
-    {
-      "laneId": 6,
-      "tick": 1152,
-      "id": 1031
+      "id": 2582
     },
     {
       "laneId": 9,
       "tick": 1152,
-      "id": 1274
+      "id": 2565,
+      "vfxType": "LightSwipeDown"
     },
     {
       "laneId": 1,
@@ -416,17 +466,13 @@
       "laneId": 2,
       "tick": 1248,
       "endTick": 1296,
-      "id": 276
+      "id": 2599
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 1248,
-      "id": 1032
-    },
-    {
-      "laneId": 5,
-      "tick": 1248,
-      "id": 1033
+      "id": 4950,
+      "vfxType": "LightBottom"
     },
     {
       "laneId": 2,
@@ -441,7 +487,8 @@
     {
       "laneId": 8,
       "tick": 1344,
-      "id": 1035
+      "id": 2567,
+      "vfxType": "LightSwipeUp"
     },
     {
       "laneId": 2,
@@ -454,11 +501,6 @@
       "id": 330
     },
     {
-      "laneId": 10,
-      "tick": 1392,
-      "id": 1275
-    },
-    {
       "laneId": 0,
       "tick": 1416,
       "id": 331
@@ -467,17 +509,19 @@
       "laneId": 1,
       "tick": 1440,
       "endTick": 1536,
-      "id": 332
+      "id": 2616
     },
     {
       "laneId": 9,
       "tick": 1440,
-      "id": 1277
+      "id": 2568,
+      "vfxType": "LightSwipeDown"
     },
     {
-      "laneId": 4,
+      "laneId": 101,
       "tick": 1536,
-      "id": 1039
+      "id": 3662,
+      "vfxType": "D1_LightBuildUp"
     },
     {
       "laneId": 2,
@@ -490,9 +534,16 @@
       "id": 366
     },
     {
-      "laneId": 7,
+      "laneId": 14,
       "tick": 1584,
-      "id": 1041
+      "id": 2570,
+      "vfxType": "CircleTopR"
+    },
+    {
+      "laneId": 102,
+      "tick": 1584,
+      "id": 3663,
+      "vfxType": "FlashSide"
     },
     {
       "laneId": 1,
@@ -505,9 +556,16 @@
       "id": 367
     },
     {
-      "laneId": 7,
+      "laneId": 4,
       "tick": 1608,
-      "id": 1042
+      "id": 2571,
+      "vfxType": "CircleTop"
+    },
+    {
+      "laneId": 102,
+      "tick": 1608,
+      "id": 3664,
+      "vfxType": "FlashSide"
     },
     {
       "laneId": 0,
@@ -520,15 +578,29 @@
       "id": 369
     },
     {
-      "laneId": 7,
+      "laneId": 13,
       "tick": 1632,
-      "id": 1043
+      "id": 2572,
+      "vfxType": "CircleTopL"
+    },
+    {
+      "laneId": 15,
+      "tick": 1632,
+      "id": 4938,
+      "vfxType": "SuperFlashFull"
+    },
+    {
+      "laneId": 102,
+      "tick": 1632,
+      "id": 3665,
+      "vfxType": "FlashSide"
     },
     {
       "laneId": 11,
       "tick": 1632,
       "endTick": 2880,
-      "id": 1045
+      "id": 3666,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 3,
@@ -563,7 +635,14 @@
     {
       "laneId": 8,
       "tick": 1728,
-      "id": 1067
+      "id": 1067,
+      "vfxType": "wipeUp"
+    },
+    {
+      "laneId": 103,
+      "tick": 1728,
+      "id": 3666,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 3,
@@ -574,17 +653,25 @@
       "laneId": 1,
       "tick": 1776,
       "endTick": 1848,
-      "id": 380
+      "id": 4083
+    },
+    {
+      "laneId": 9,
+      "tick": 1776,
+      "id": 2576,
+      "vfxType": "LightSwipeDown"
     },
     {
       "laneId": 4,
       "tick": 1776,
-      "id": 1058
+      "id": 1058,
+      "vfxType": "CircleTop"
     },
     {
-      "laneId": 5,
+      "laneId": 104,
       "tick": 1776,
-      "id": 1057
+      "id": 3667,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 3,
@@ -627,9 +714,16 @@
       "id": 420
     },
     {
-      "laneId": 7,
+      "laneId": 14,
       "tick": 1920,
-      "id": 1059
+      "id": 2573,
+      "vfxType": "CircleTopR"
+    },
+    {
+      "laneId": 102,
+      "tick": 1920,
+      "id": 3668,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -642,9 +736,16 @@
       "id": 422
     },
     {
-      "laneId": 7,
+      "laneId": 4,
       "tick": 1944,
-      "id": 1060
+      "id": 2574,
+      "vfxType": "CircleTop"
+    },
+    {
+      "laneId": 102,
+      "tick": 1944,
+      "id": 3669,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -657,14 +758,16 @@
       "id": 424
     },
     {
-      "laneId": 4,
+      "laneId": 13,
       "tick": 1968,
-      "id": 1069
+      "id": 2575,
+      "vfxType": "CircleTopL"
     },
     {
-      "laneId": 7,
+      "laneId": 102,
       "tick": 1968,
-      "id": 1061
+      "id": 3670,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 3,
@@ -695,12 +798,19 @@
       "laneId": 3,
       "tick": 2064,
       "endTick": 2112,
-      "id": 441
+      "id": 4108
     },
     {
       "laneId": 8,
       "tick": 2064,
-      "id": 1070
+      "id": 1070,
+      "vfxType": "wipeUp"
+    },
+    {
+      "laneId": 103,
+      "tick": 2064,
+      "id": 3671,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -708,14 +818,22 @@
       "id": 457
     },
     {
-      "laneId": 4,
+      "laneId": 9,
       "tick": 2112,
-      "id": 1064
+      "id": 2577,
+      "vfxType": "LightSwipeDown"
     },
     {
-      "laneId": 5,
+      "laneId": 4,
       "tick": 2112,
-      "id": 1065
+      "id": 1064,
+      "vfxType": "CircleTop"
+    },
+    {
+      "laneId": 104,
+      "tick": 2112,
+      "id": 3672,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 3,
@@ -733,9 +851,10 @@
       "id": 458
     },
     {
-      "laneId": 4,
+      "laneId": 14,
       "tick": 2208,
-      "id": 1073
+      "id": 2579,
+      "vfxType": "CircleTopR"
     },
     {
       "laneId": 2,
@@ -745,7 +864,8 @@
     {
       "laneId": 4,
       "tick": 2220,
-      "id": 1074
+      "id": 1074,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 2,
@@ -755,7 +875,8 @@
     {
       "laneId": 4,
       "tick": 2244,
-      "id": 1075
+      "id": 1075,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 1,
@@ -763,9 +884,10 @@
       "id": 463
     },
     {
-      "laneId": 4,
+      "laneId": 13,
       "tick": 2256,
-      "id": 1076
+      "id": 2580,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 0,
@@ -773,25 +895,28 @@
       "id": 464
     },
     {
-      "laneId": 4,
+      "laneId": 13,
       "tick": 2280,
-      "id": 1077
+      "id": 2581,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 1,
       "tick": 2304,
       "endTick": 2376,
-      "id": 465
+      "id": 4125
     },
     {
       "laneId": 4,
       "tick": 2304,
-      "id": 1079
+      "id": 1079,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 5,
       "tick": 2304,
-      "id": 1078
+      "id": 1078,
+      "vfxType": "BurstGlitter"
     },
     {
       "laneId": 3,
@@ -819,14 +944,22 @@
       "id": 495
     },
     {
-      "laneId": 7,
-      "tick": 2400,
-      "id": 1080
-    },
-    {
       "laneId": 8,
       "tick": 2400,
-      "id": 1090
+      "id": 1090,
+      "vfxType": "wipeUp"
+    },
+    {
+      "laneId": 14,
+      "tick": 2400,
+      "id": 2583,
+      "vfxType": "CircleTopR"
+    },
+    {
+      "laneId": 103,
+      "tick": 2400,
+      "id": 3673,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -844,9 +977,10 @@
       "id": 505
     },
     {
-      "laneId": 5,
+      "laneId": 13,
       "tick": 2448,
-      "id": 1092
+      "id": 2584,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 0,
@@ -857,23 +991,31 @@
       "laneId": 1,
       "tick": 2496,
       "endTick": 2568,
-      "id": 502
+      "id": 4150
     },
     {
       "laneId": 3,
       "tick": 2496,
       "endTick": 2568,
-      "id": 508
-    },
-    {
-      "laneId": 7,
-      "tick": 2496,
-      "id": 1082
+      "id": 4175
     },
     {
       "laneId": 9,
       "tick": 2496,
-      "id": 1089
+      "id": 1089,
+      "vfxType": "wipeDown"
+    },
+    {
+      "laneId": 4,
+      "tick": 2496,
+      "id": 2585,
+      "vfxType": "CircleTop"
+    },
+    {
+      "laneId": 104,
+      "tick": 2496,
+      "id": 3675,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -884,7 +1026,7 @@
       "laneId": 1,
       "tick": 2592,
       "endTick": 2664,
-      "id": 559
+      "id": 4200
     },
     {
       "laneId": 3,
@@ -892,14 +1034,10 @@
       "id": 560
     },
     {
-      "laneId": 7,
+      "laneId": 4,
       "tick": 2592,
-      "id": 1094
-    },
-    {
-      "laneId": 10,
-      "tick": 2592,
-      "id": 1093
+      "id": 2586,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 0,
@@ -919,7 +1057,14 @@
     {
       "laneId": 8,
       "tick": 2688,
-      "id": 1095
+      "id": 1095,
+      "vfxType": "wipeUp"
+    },
+    {
+      "laneId": 103,
+      "tick": 2688,
+      "id": 3676,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -939,7 +1084,14 @@
     {
       "laneId": 9,
       "tick": 2736,
-      "id": 1096
+      "id": 1096,
+      "vfxType": "wipeDown"
+    },
+    {
+      "laneId": 104,
+      "tick": 2736,
+      "id": 3677,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -950,18 +1102,31 @@
       "laneId": 1,
       "tick": 2784,
       "endTick": 2880,
-      "id": 598
+      "id": 4225
     },
     {
       "laneId": 2,
       "tick": 2784,
       "endTick": 2880,
-      "id": 597
+      "id": 4258
     },
     {
-      "laneId": 10,
+      "laneId": 13,
       "tick": 2784,
-      "id": 1097
+      "id": 2587,
+      "vfxType": "CircleTopL"
+    },
+    {
+      "laneId": 14,
+      "tick": 2784,
+      "id": 2588,
+      "vfxType": "CircleTopR"
+    },
+    {
+      "laneId": 101,
+      "tick": 2880,
+      "id": 4937,
+      "vfxType": "D1_CircleBuildUp"
     },
     {
       "laneId": 2,
@@ -974,14 +1139,16 @@
       "id": 664
     },
     {
-      "laneId": 4,
+      "laneId": 14,
       "tick": 2928,
-      "id": 1106
+      "id": 2679,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 7,
+      "laneId": 102,
       "tick": 2928,
-      "id": 1098
+      "id": 3681,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -996,12 +1163,14 @@
     {
       "laneId": 4,
       "tick": 2952,
-      "id": 1108
+      "id": 2680,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 7,
+      "laneId": 102,
       "tick": 2952,
-      "id": 1099
+      "id": 3682,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1014,14 +1183,35 @@
       "id": 667
     },
     {
-      "laneId": 5,
-      "tick": 2976,
-      "id": 1109
-    },
-    {
       "laneId": 7,
       "tick": 2976,
-      "id": 1101
+      "id": 2666,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 13,
+      "tick": 2976,
+      "id": 2681,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 15,
+      "tick": 2976,
+      "id": 2607,
+      "vfxType": "SuperFlashFull"
+    },
+    {
+      "laneId": 102,
+      "tick": 2976,
+      "id": 3683,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 106,
+      "tick": 2976,
+      "endTick": 3744,
+      "id": 4291,
+      "vfxType": "LoopFireAsh"
     },
     {
       "laneId": 1,
@@ -1029,9 +1219,16 @@
       "id": 669
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3000,
-      "id": 1182
+      "id": 2667,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 7,
+      "tick": 3024,
+      "id": 2668,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1044,9 +1241,10 @@
       "id": 729
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3048,
-      "id": 1183
+      "id": 2669,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1064,9 +1262,16 @@
       "id": 675
     },
     {
-      "laneId": 8,
+      "laneId": 7,
       "tick": 3072,
-      "id": 1233
+      "id": 2670,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 14,
+      "tick": 3072,
+      "id": 2673,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1079,9 +1284,16 @@
       "id": 676
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3096,
-      "id": 1184
+      "id": 2671,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 14,
+      "tick": 3096,
+      "id": 2674,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1094,9 +1306,16 @@
       "id": 677
     },
     {
-      "laneId": 10,
+      "laneId": 7,
       "tick": 3120,
-      "id": 1235
+      "id": 2672,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 4,
+      "tick": 3120,
+      "id": 2675,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1109,9 +1328,16 @@
       "id": 687
     },
     {
+      "laneId": 7,
+      "tick": 3144,
+      "id": 2676,
+      "vfxType": "LoopGlitter"
+    },
+    {
       "laneId": 4,
       "tick": 3144,
-      "id": 1185
+      "id": 1185,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 0,
@@ -1124,9 +1350,16 @@
       "id": 688
     },
     {
-      "laneId": 9,
+      "laneId": 7,
       "tick": 3168,
-      "id": 1237
+      "id": 2677,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 13,
+      "tick": 3168,
+      "id": 2595,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 1,
@@ -1134,9 +1367,16 @@
       "id": 733
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3192,
-      "id": 1114
+      "id": 2682,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 7,
+      "tick": 3216,
+      "id": 2683,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1149,9 +1389,10 @@
       "id": 723
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3240,
-      "id": 1115
+      "id": 2684,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1169,9 +1410,16 @@
       "id": 696
     },
     {
-      "laneId": 8,
+      "laneId": 7,
       "tick": 3264,
-      "id": 1238
+      "id": 2685,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 14,
+      "tick": 3264,
+      "id": 2686,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1184,9 +1432,16 @@
       "id": 697
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3288,
-      "id": 1116
+      "id": 2690,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 14,
+      "tick": 3288,
+      "id": 2688,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1199,9 +1454,16 @@
       "id": 698
     },
     {
-      "laneId": 10,
+      "laneId": 7,
       "tick": 3312,
-      "id": 1239
+      "id": 2691,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 4,
+      "tick": 3312,
+      "id": 2689,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1214,9 +1476,16 @@
       "id": 699
     },
     {
+      "laneId": 7,
+      "tick": 3336,
+      "id": 2692,
+      "vfxType": "LoopGlitter"
+    },
+    {
       "laneId": 4,
       "tick": 3336,
-      "id": 1117
+      "id": 1117,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 0,
@@ -1229,9 +1498,16 @@
       "id": 700
     },
     {
-      "laneId": 9,
+      "laneId": 7,
       "tick": 3360,
-      "id": 1240
+      "id": 2693,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 13,
+      "tick": 3360,
+      "id": 2608,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 1,
@@ -1239,9 +1515,16 @@
       "id": 738
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3384,
-      "id": 1118
+      "id": 2694,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 7,
+      "tick": 3408,
+      "id": 2695,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1254,9 +1537,10 @@
       "id": 740
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3432,
-      "id": 1119
+      "id": 2696,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1274,14 +1558,16 @@
       "id": 712
     },
     {
-      "laneId": 5,
+      "laneId": 7,
       "tick": 3456,
-      "id": 1148
+      "id": 2697,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 8,
+      "laneId": 14,
       "tick": 3456,
-      "id": 1241
+      "id": 2698,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1294,9 +1580,16 @@
       "id": 714
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3480,
-      "id": 1120
+      "id": 2701,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 14,
+      "tick": 3480,
+      "id": 2699,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1309,14 +1602,16 @@
       "id": 715
     },
     {
-      "laneId": 5,
+      "laneId": 7,
       "tick": 3504,
-      "id": 1149
+      "id": 2702,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 10,
+      "laneId": 4,
       "tick": 3504,
-      "id": 1242
+      "id": 2700,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1329,9 +1624,16 @@
       "id": 716
     },
     {
+      "laneId": 7,
+      "tick": 3528,
+      "id": 2703,
+      "vfxType": "LoopGlitter"
+    },
+    {
       "laneId": 4,
       "tick": 3528,
-      "id": 1121
+      "id": 1121,
+      "vfxType": "CircleTop"
     },
     {
       "laneId": 0,
@@ -1344,19 +1646,16 @@
       "id": 717
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3552,
-      "id": 1126
+      "id": 2704,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 5,
+      "laneId": 13,
       "tick": 3552,
-      "id": 1150
-    },
-    {
-      "laneId": 9,
-      "tick": 3552,
-      "id": 1243
+      "id": 2614,
+      "vfxType": "CircleTopL"
     },
     {
       "laneId": 0,
@@ -1364,19 +1663,16 @@
       "id": 744
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3576,
-      "id": 1122
+      "id": 2705,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3600,
-      "id": 1127
-    },
-    {
-      "laneId": 5,
-      "tick": 3600,
-      "id": 1151
+      "id": 2706,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1389,9 +1685,10 @@
       "id": 746
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3624,
-      "id": 1123
+      "id": 2707,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1409,14 +1706,22 @@
       "id": 748
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3648,
-      "id": 1186
+      "id": 2708,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 5,
+      "laneId": 14,
       "tick": 3648,
-      "id": 1152
+      "id": 2718,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 6,
+      "tick": 3660,
+      "id": 3944,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1429,14 +1734,22 @@
       "id": 752
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3672,
-      "id": 1187
+      "id": 2710,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 5,
+      "laneId": 14,
       "tick": 3672,
-      "id": 1153
+      "id": 2719,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 6,
+      "tick": 3684,
+      "id": 3945,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1449,24 +1762,22 @@
       "id": 753
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3696,
-      "id": 1188
-    },
-    {
-      "laneId": 5,
-      "tick": 3696,
-      "id": 1154
+      "id": 2713,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 4,
-      "tick": 3708,
-      "id": 1189
+      "tick": 3696,
+      "id": 2720,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 5,
+      "laneId": 6,
       "tick": 3708,
-      "id": 1167
+      "id": 3946,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1479,56 +1790,89 @@
       "id": 755
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3720,
-      "id": 1190
+      "id": 4942,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 5,
+      "laneId": 14,
       "tick": 3720,
-      "id": 1170
+      "id": 2621,
+      "vfxType": "CircleTopR"
+    },
+    {
+      "laneId": 102,
+      "tick": 3720,
+      "id": 4939,
+      "vfxType": "FlashSide"
     },
     {
       "laneId": 4,
-      "tick": 3732,
-      "id": 1191
+      "tick": 3726,
+      "id": 2721,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 5,
+      "laneId": 102,
+      "tick": 3726,
+      "id": 4940,
+      "vfxType": "FlashSide"
+    },
+    {
+      "laneId": 6,
       "tick": 3732,
-      "id": 1172
+      "id": 4943,
+      "vfxType": "LightTop"
+    },
+    {
+      "laneId": 13,
+      "tick": 3732,
+      "id": 2722,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 3732,
+      "id": 4941,
+      "vfxType": "FlashSide"
     },
     {
       "laneId": 0,
       "tick": 3744,
       "endTick": 3840,
-      "id": 757
-    },
-    {
-      "laneId": 4,
-      "tick": 3744,
-      "id": 1192
-    },
-    {
-      "laneId": 5,
-      "tick": 3744,
-      "id": 1135
-    },
-    {
-      "laneId": 6,
-      "tick": 3744,
-      "id": 1175
+      "id": 4548
     },
     {
       "laneId": 7,
       "tick": 3744,
-      "id": 1136
+      "id": 2638,
+      "vfxType": "LightBottom"
+    },
+    {
+      "laneId": 107,
+      "tick": 3744,
+      "id": 3952,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 15,
+      "tick": 3744,
+      "id": 2624,
+      "vfxType": "SuperFlashFull"
+    },
+    {
+      "laneId": 105,
+      "tick": 3744,
+      "id": 3684,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 12,
       "tick": 3744,
       "endTick": 4512,
-      "id": 1737
+      "id": 4581,
+      "vfxType": "FeverSpeed"
     },
     {
       "laneId": 2,
@@ -1536,14 +1880,16 @@
       "id": 836
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 3768,
-      "id": 1194
+      "id": 3948,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3792,
-      "id": 1195
+      "id": 2637,
+      "vfxType": "LightBottom"
     },
     {
       "laneId": 1,
@@ -1556,9 +1902,10 @@
       "id": 839
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 3816,
-      "id": 1196
+      "id": 3949,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1571,14 +1918,16 @@
       "id": 790
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3840,
-      "id": 1197
+      "id": 2640,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 8,
+      "laneId": 14,
       "tick": 3840,
-      "id": 1253
+      "id": 2723,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1591,9 +1940,16 @@
       "id": 796
     },
     {
-      "laneId": 6,
+      "laneId": 14,
       "tick": 3864,
-      "id": 1198
+      "id": 2724,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 3864,
+      "id": 3950,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1606,14 +1962,16 @@
       "id": 798
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3888,
-      "id": 1199
+      "id": 2639,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 10,
+      "laneId": 4,
       "tick": 3888,
-      "id": 1254
+      "id": 2725,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1626,25 +1984,34 @@
       "id": 800
     },
     {
-      "laneId": 6,
+      "laneId": 4,
       "tick": 3912,
-      "id": 1200
+      "id": 2726,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 3912,
+      "id": 3951,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
       "tick": 3936,
       "endTick": 4032,
-      "id": 845
+      "id": 4838
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3936,
-      "id": 1201
+      "id": 2641,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 9,
+      "laneId": 13,
       "tick": 3936,
-      "id": 1255
+      "id": 2727,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1652,14 +2019,16 @@
       "id": 841
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 3960,
-      "id": 1202
+      "id": 3953,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 3984,
-      "id": 1203
+      "id": 2642,
+      "vfxType": "LightBottom"
     },
     {
       "laneId": 1,
@@ -1667,9 +2036,10 @@
       "id": 878
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 4008,
-      "id": 1204
+      "id": 3954,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1682,14 +2052,16 @@
       "id": 844
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4032,
-      "id": 1205
+      "id": 2643,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 8,
+      "laneId": 14,
       "tick": 4032,
-      "id": 1256
+      "id": 2728,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1702,9 +2074,16 @@
       "id": 881
     },
     {
-      "laneId": 6,
+      "laneId": 14,
       "tick": 4056,
-      "id": 1206
+      "id": 2729,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 4056,
+      "id": 3955,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1717,14 +2096,16 @@
       "id": 883
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4080,
-      "id": 1207
+      "id": 2644,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 10,
+      "laneId": 4,
       "tick": 4080,
-      "id": 1257
+      "id": 2730,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1737,15 +2118,22 @@
       "id": 885
     },
     {
-      "laneId": 6,
+      "laneId": 4,
       "tick": 4104,
-      "id": 1208
+      "id": 2731,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 4104,
+      "id": 3956,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
       "tick": 4128,
       "endTick": 4224,
-      "id": 888
+      "id": 4871
     },
     {
       "laneId": 1,
@@ -1753,14 +2141,16 @@
       "id": 887
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4128,
-      "id": 1209
+      "id": 2645,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 9,
+      "laneId": 13,
       "tick": 4128,
-      "id": 1258
+      "id": 2732,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1768,14 +2158,16 @@
       "id": 921
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 4152,
-      "id": 1210
+      "id": 3957,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4176,
-      "id": 1211
+      "id": 2646,
+      "vfxType": "LightBottom"
     },
     {
       "laneId": 1,
@@ -1788,9 +2180,10 @@
       "id": 922
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 4200,
-      "id": 1212
+      "id": 3958,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1803,14 +2196,16 @@
       "id": 924
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4224,
-      "id": 1213
+      "id": 2647,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 8,
+      "laneId": 14,
       "tick": 4224,
-      "id": 1259
+      "id": 2733,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1823,9 +2218,16 @@
       "id": 925
     },
     {
-      "laneId": 6,
+      "laneId": 14,
       "tick": 4248,
-      "id": 1216
+      "id": 2734,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 4248,
+      "id": 3959,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1838,14 +2240,16 @@
       "id": 927
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4272,
-      "id": 1217
+      "id": 2648,
+      "vfxType": "LightBottom"
     },
     {
-      "laneId": 10,
+      "laneId": 4,
       "tick": 4272,
-      "id": 1260
+      "id": 2735,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1858,15 +2262,22 @@
       "id": 929
     },
     {
-      "laneId": 6,
+      "laneId": 4,
       "tick": 4296,
-      "id": 1218
+      "id": 2736,
+      "vfxType": "LoopGlitter"
+    },
+    {
+      "laneId": 102,
+      "tick": 4296,
+      "id": 3960,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
       "tick": 4320,
       "endTick": 4416,
-      "id": 932
+      "id": 4904
     },
     {
       "laneId": 1,
@@ -1874,14 +2285,16 @@
       "id": 931
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4320,
-      "id": 1219
+      "id": 2649,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 9,
+      "laneId": 13,
       "tick": 4320,
-      "id": 1261
+      "id": 2737,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1889,14 +2302,16 @@
       "id": 965
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 4344,
-      "id": 1220
+      "id": 3961,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4368,
-      "id": 1221
+      "id": 2650,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1904,9 +2319,10 @@
       "id": 966
     },
     {
-      "laneId": 6,
+      "laneId": 102,
       "tick": 4392,
-      "id": 1222
+      "id": 3962,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1919,14 +2335,16 @@
       "id": 969
     },
     {
-      "laneId": 4,
+      "laneId": 7,
       "tick": 4416,
-      "id": 1223
+      "id": 2651,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 8,
+      "laneId": 14,
       "tick": 4416,
-      "id": 1262
+      "id": 2738,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1939,9 +2357,10 @@
       "id": 970
     },
     {
-      "laneId": 6,
+      "laneId": 14,
       "tick": 4440,
-      "id": 1224
+      "id": 2739,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1956,12 +2375,8 @@
     {
       "laneId": 4,
       "tick": 4464,
-      "id": 1225
-    },
-    {
-      "laneId": 10,
-      "tick": 4464,
-      "id": 1263
+      "id": 2740,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 2,
@@ -1969,14 +2384,16 @@
       "id": 974
     },
     {
-      "laneId": 6,
+      "laneId": 14,
       "tick": 4488,
-      "id": 1226
+      "id": 2741,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 4,
       "tick": 4494,
-      "id": 1227
+      "id": 2662,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 1,
@@ -1984,14 +2401,10 @@
       "id": 975
     },
     {
-      "laneId": 4,
+      "laneId": 13,
       "tick": 4500,
-      "id": 1228
-    },
-    {
-      "laneId": 4,
-      "tick": 4506,
-      "id": 1229
+      "id": 2742,
+      "vfxType": "LoopGlitter"
     },
     {
       "laneId": 0,
@@ -1999,14 +2412,16 @@
       "id": 976
     },
     {
-      "laneId": 5,
+      "laneId": 101,
       "tick": 4512,
-      "id": 1230
+      "id": 3963,
+      "vfxType": "LoopGlitter"
     },
     {
-      "laneId": 9,
+      "laneId": 100,
       "tick": 4512,
-      "id": 1266
+      "id": 2665,
+      "vfxType": "LoopGlitter"
     }
   ],
   "audioOffset": -0.05999999999999992,

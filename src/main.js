@@ -80,11 +80,12 @@ let currentSpriteRect = { x: 0, y: 0, w: 0, h: 0, s1: 0, s2: 0, v1: 0, v2: 0 };
 let displayScale = 1.0;
 
 // -- DOM Elements --
-let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, recordBtn, recordingControls, saveRecordBtn, discardRecordBtn, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, laneHeaders, laneKeyRow, laneHighlightLayer, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
+let audioInput, projectInput, trackNameLabel, playBtn, playIcon, pauseIcon, recordBtn, recordingControls, saveRecordBtn, discardRecordBtn, bpmInput, volumeSlider, zoomInput, liveSpeedInput, thicknessInput, widthScaleInput, vfxAlphaInput, speedLerpInput, invertScrollToggle, snapSelect, exportBtn, importBtn, addLaneBtn, currentTimeDisplay, offsetDisplay, offsetSlider, laneHeaders, laneKeyRow, laneHighlightLayer, vfxModal, burstVfxList, idleVfxList, waveformCanvas, editorCanvas, previewCanvas, ctxWave, ctxEdit, ctxPrev;
 let bgInput, noteSpriteInput, longNoteSpriteInput, themeSettingsBtn, spriteModal, spriteEditorCanvas, ctxSprite, saveSpriteBtn, closeSpriteBtn;
 let bgList, noteList, longNoteList, editorTitle, editorHint;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
 let zoomValue, liveSpeedValue, speedLerpValue, thicknessValue, widthScaleValue, vfxAlphaValue, volumeValue;
+let moveLaneLeftBtn, moveLaneRightBtn, customVfxInput, applyCustomVfxBtn;
 
 // -- Initialization --
 function init() {
@@ -113,6 +114,7 @@ function init() {
     addLaneBtn = document.getElementById('addLaneBtn');
     currentTimeDisplay = document.getElementById('currentTimeDisplay');
     offsetDisplay = document.getElementById('offsetDisplay');
+    offsetSlider = document.getElementById('offsetSlider');
     laneHeaders = document.getElementById('laneHeaders');
     laneKeyRow = document.getElementById('laneKeyRow');
     laneHighlightLayer = document.getElementById('laneHighlightLayer');
@@ -120,6 +122,10 @@ function init() {
     vfxModal = document.getElementById('vfxModal');
     burstVfxList = document.getElementById('burstVfxList');
     idleVfxList = document.getElementById('idleVfxList');
+    moveLaneLeftBtn = document.getElementById('moveLaneLeftBtn');
+    moveLaneRightBtn = document.getElementById('moveLaneRightBtn');
+    customVfxInput = document.getElementById('customVfxInput');
+    applyCustomVfxBtn = document.getElementById('applyCustomVfxBtn');
 
     waveformCanvas = document.getElementById('waveformCanvas');
     editorCanvas = document.getElementById('editorCanvas');
@@ -219,7 +225,7 @@ async function loadDefaultData() {
             });
             
             events = internalEvents;
-            audioOffset = data.audioOffset || 0;
+            audioOffset = -(data.audioOffset || 0);
             bpm = data.bpm || 120;
             bpmInput.value = bpm;
             nextId = maxId;
@@ -287,6 +293,11 @@ function setupListeners() {
     setupSync(widthScaleInput, widthScaleValue, (v) => noteWidthScale = parseInt(v) / 100);
     setupSync(vfxAlphaInput, vfxAlphaValue, (v) => vfxAlpha = parseFloat(v));
     setupSync(speedLerpInput, speedLerpValue, (v) => speedLerp = parseFloat(v));
+
+    offsetSlider?.addEventListener('input', () => {
+        audioOffset = parseFloat(offsetSlider.value) / 1000;
+        updateOffsetDisplay();
+    });
 
     invertScrollToggle.addEventListener('change', () => { isInvertedScroll = invertScrollToggle.checked; });
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
@@ -365,6 +376,9 @@ function setupListeners() {
     document.getElementById('setNoteOption')?.addEventListener('click', () => setLaneType('note'));
     document.getElementById('setThemeSwitchOption')?.addEventListener('click', () => setVfxType('SwitchThemeSet'));
     document.getElementById('deleteLaneBtn')?.addEventListener('click', deleteCurrentLane);
+    moveLaneLeftBtn?.addEventListener('click', moveLaneLeft);
+    moveLaneRightBtn?.addEventListener('click', moveLaneRight);
+    applyCustomVfxBtn?.addEventListener('click', applyCustomVfx);
 
     saveSpriteBtn.onclick = saveSpriteRect;
     closeSpriteBtn.onclick = () => { spriteModal.style.display = 'none'; spriteEditorActive = false; };
@@ -733,6 +747,47 @@ function renderLaneHeaders() {
         const label = lane.type === 'note' ? 'NOTE' : (lane.vfxType || 'NONE');
         div.textContent = label;
         div.onclick = () => openVfxModal(lane.id);
+        
+        // Drag and drop for columns reordering
+        div.draggable = true;
+        div.style.cursor = 'grab';
+        div.title = "Drag to reorder column";
+        div.ondragstart = (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ laneId: lane.id }));
+            div.classList.add('opacity-40');
+        };
+        div.ondragend = () => div.classList.remove('opacity-40');
+        div.ondragover = (e) => {
+            e.preventDefault();
+            div.classList.add('bg-pink-500/20', 'text-white');
+        };
+        div.ondragleave = () => {
+            div.classList.remove('bg-pink-500/20', 'text-white');
+        };
+        div.ondrop = (e) => {
+            e.preventDefault();
+            div.classList.remove('bg-pink-500/20', 'text-white');
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                if (data.laneId === undefined) return;
+                const fromId = data.laneId;
+                const toId = lane.id;
+                if (fromId === toId) return;
+
+                const fromIndex = lanes.findIndex(l => l.id === fromId);
+                const toIndex = lanes.findIndex(l => l.id === toId);
+                if (fromIndex === -1 || toIndex === -1) return;
+
+                const [movedLane] = lanes.splice(fromIndex, 1);
+                lanes.splice(toIndex, 0, movedLane);
+                renderLaneHeaders();
+                const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+                drawEditor(currentTime);
+            } catch (err) {
+                console.error("Drop failed:", err);
+            }
+        };
+
         laneHeaders.appendChild(div);
 
         const keyDiv = document.createElement('div');
@@ -780,6 +835,77 @@ function addNewLane() {
 function openVfxModal(laneId) {
     editingLaneId = laneId;
     vfxModal.style.display = 'block';
+    const lane = lanes.find(l => l.id === laneId);
+    if (lane) {
+        customVfxInput.value = (lane.type === 'vfx' && lane.vfxType) ? lane.vfxType : '';
+    } else {
+        customVfxInput.value = '';
+    }
+    updateMoveButtonsState();
+}
+
+function moveLaneLeft() {
+    if (editingLaneId === null) return;
+    const index = lanes.findIndex(l => l.id === editingLaneId);
+    if (index > 0) {
+        const [lane] = lanes.splice(index, 1);
+        lanes.splice(index - 1, 0, lane);
+        renderLaneHeaders();
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        drawEditor(currentTime);
+        updateMoveButtonsState();
+    }
+}
+
+function moveLaneRight() {
+    if (editingLaneId === null) return;
+    const index = lanes.findIndex(l => l.id === editingLaneId);
+    if (index !== -1 && index < lanes.length - 1) {
+        const [lane] = lanes.splice(index, 1);
+        lanes.splice(index + 1, 0, lane);
+        renderLaneHeaders();
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        drawEditor(currentTime);
+        updateMoveButtonsState();
+    }
+}
+
+function updateMoveButtonsState() {
+    if (editingLaneId === null || !moveLaneLeftBtn || !moveLaneRightBtn) return;
+    const index = lanes.findIndex(l => l.id === editingLaneId);
+    if (index <= 0) {
+        moveLaneLeftBtn.disabled = true;
+        moveLaneLeftBtn.classList.add('opacity-40', 'pointer-events-none');
+    } else {
+        moveLaneLeftBtn.disabled = false;
+        moveLaneLeftBtn.classList.remove('opacity-40', 'pointer-events-none');
+    }
+    if (index === -1 || index >= lanes.length - 1) {
+        moveLaneRightBtn.disabled = true;
+        moveLaneRightBtn.classList.add('opacity-40', 'pointer-events-none');
+    } else {
+        moveLaneRightBtn.disabled = false;
+        moveLaneRightBtn.classList.remove('opacity-40', 'pointer-events-none');
+    }
+}
+
+function applyCustomVfx() {
+    if (editingLaneId === null) return;
+    const lane = lanes.find(l => l.id === editingLaneId);
+    if (lane) {
+        const val = customVfxInput.value.trim();
+        if (val) {
+            lane.type = 'vfx';
+            lane.vfxType = val;
+        } else {
+            lane.type = 'note';
+            lane.vfxType = undefined;
+        }
+        renderLaneHeaders();
+        vfxModal.style.display = 'none';
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        drawEditor(currentTime);
+    }
 }
 
 function setLaneType(type) {
@@ -790,6 +916,8 @@ function setLaneType(type) {
         lane.vfxType = undefined;
         renderLaneHeaders();
         vfxModal.style.display = 'none';
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        drawEditor(currentTime);
     }
 }
 
@@ -801,6 +929,8 @@ function setVfxType(vfx) {
         lane.vfxType = vfx;
         renderLaneHeaders();
         vfxModal.style.display = 'none';
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        drawEditor(currentTime);
     }
 }
 
@@ -819,7 +949,10 @@ function exportProject() {
         const segments = getNoteSegments(lane.id, events);
         segments.forEach(seg => {
             const representationEvent = events.find(e => e.id === seg.eventIds[0]) || {};
-            const extraProps = representationEvent.vfxType ? { vfxType: representationEvent.vfxType } : {};
+            let extraProps = {};
+            if (representationEvent.vfxType && representationEvent.vfxType !== lane.vfxType) {
+                extraProps.vfxType = representationEvent.vfxType;
+            }
 
             if (seg.isLong) {
                 exportedEvents.push({
@@ -842,7 +975,7 @@ function exportProject() {
     // Sort events by tick for a clean output order
     exportedEvents.sort((a, b) => a.tick - b.tick);
 
-    const data = { lanes, events: exportedEvents, audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "5.0" };
+    const data = { lanes, events: exportedEvents, audioOffset: -audioOffset, bpm, ticksPerBar: TICKS_PER_BAR, version: "5.0" };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -890,7 +1023,7 @@ async function handleProjectImportFile(e) {
         });
         
         events = internalEvents;
-        audioOffset = data.audioOffset || 0;
+        audioOffset = -(data.audioOffset || 0);
         bpm = data.bpm || 120;
         bpmInput.value = bpm;
         nextId = maxId;
@@ -901,7 +1034,9 @@ async function handleProjectImportFile(e) {
 }
 
 function updateOffsetDisplay() {
-    offsetDisplay.textContent = `${Math.round(audioOffset * 1000)}ms`;
+    const ms = Math.round(audioOffset * 1000);
+    offsetDisplay.textContent = `${ms}ms`;
+    if (offsetSlider) offsetSlider.value = ms;
 }
 
 function tryPlaceEvent() {
@@ -1026,9 +1161,23 @@ function triggerVFX(laneId, type) {
         }
         return;
     }
-    if (BURST_VFX.includes(type)) {
-        activeBurstVFX.push({ type, startTime: performance.now(), progress: 0, active: true, laneId, randomSeed: Math.random() });
-    }
+    
+    // Determine duration based on prefix or type
+    let duration = 600; // default
+    if (type.startsWith('D1_')) duration = 1000;
+    else if (type.startsWith('D2_')) duration = 2000;
+    else if (type.includes('SuperFlash')) duration = 1200;
+    else if (type.includes('Flash')) duration = 400;
+
+    activeBurstVFX.push({ 
+        type, 
+        startTime: performance.now(), 
+        duration,
+        progress: 0, 
+        active: true, 
+        laneId, 
+        randomSeed: Math.random() 
+    });
 }
 
 function drawWaveform(currentTime) {
@@ -1232,10 +1381,15 @@ function renderLoop() {
     loopingVFX.clear();
     const currentTick = timeToTick(currentTime, bpm);
     lanes.forEach(lane => {
-        if (lane.type === 'vfx' && lane.vfxType && IDLE_VFX.includes(lane.vfxType)) {
+        if (lane.type === 'vfx') {
             const segments = getNoteSegments(lane.id, events);
-            if (segments.some(seg => currentTick >= seg.startTick && currentTick <= seg.endTick)) {
-                loopingVFX.set(lane.id, lane.vfxType);
+            const activeSeg = segments.find(seg => currentTick >= seg.startTick && currentTick <= seg.endTick);
+            if (activeSeg) {
+                const repEvent = events.find(e => e.id === activeSeg.eventIds[0]);
+                const finalVfx = repEvent?.vfxType || lane.vfxType;
+                if (finalVfx && IDLE_VFX.includes(finalVfx)) {
+                    loopingVFX.set(lane.id, finalVfx);
+                }
             }
         }
     });
@@ -1259,15 +1413,26 @@ function renderLoop() {
 
         const noteLanes = lanes.filter(l => l.type === 'note');
         events.forEach(e => {
+            const lane = lanes.find(l => l.id === e.laneId);
+            if (!lane) return;
+
             const eventTime = tickToTime(e.tick, bpm);
-            if (eventTime <= currentTime && eventTime > lastFrameTime) {
-                const lane = lanes.find(l => l.id === e.laneId);
-                if (lane) {
-                    if (lane.type === 'note') {
-                        const explosion = createNoteExplosion(lane.id, noteLanes.indexOf(lane), noteLanes.length, previewCanvas.width, previewCanvas.height);
-                        activeExplosions.push(explosion);
-                    }
-                    else if (lane.type === 'vfx' && lane.vfxType) triggerVFX(lane.id, lane.vfxType);
+            let triggerTime = eventTime;
+            
+            // Handle Pre-Play VFX (D1_ or D2_)
+            if (lane.type === 'vfx' && lane.vfxType) {
+                if (lane.vfxType.startsWith('D1_')) triggerTime -= 1.0;
+                else if (lane.vfxType.startsWith('D2_')) triggerTime -= 2.0;
+            }
+
+            if (triggerTime <= currentTime && triggerTime > lastFrameTime) {
+                if (lane.type === 'note') {
+                    const explosion = createNoteExplosion(lane.id, noteLanes.indexOf(lane), noteLanes.length, previewCanvas.width, previewCanvas.height);
+                    activeExplosions.push(explosion);
+                }
+                else if (lane.type === 'vfx') {
+                    const finalVfxType = e.vfxType || lane.vfxType;
+                    if (finalVfxType) triggerVFX(lane.id, finalVfxType);
                 }
             }
         });
