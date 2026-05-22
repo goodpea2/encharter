@@ -21,10 +21,21 @@ export const BURST_VFX = [
     'SuperFlashBeam', 'FlashFull', 'SuperFlashFull',
     'D1_CircleBuildUp', 'D2_CircleBuildUp',
     'D1_LightBuildUp', 'D2_LightBuildUp',
-    'SongComplete'
+    'SongComplete',
+    'CircleSwipeRight', 'CircleSwipeLeft',
+    'FadeSwipeRight', 'FadeSwipeLeft',
+    'BottomFire',
+    'CircleBlurSpreadL', 'CircleBlurSpread', 'CircleBlurSpreadR',
+    'CircleThickSpreadL', 'CircleThickSpread', 'CircleThickSpreadR',
+    'SideMultiLightL', 'SideMultiLightR',
+    'RandomBottomCircle',
+    'XLightTopUp', 'XLightTopDown',
+    'XLightBottomUp', 'XLightBottomDown',
+    'BurstSideLevels', 'LevelsTop', 'LevelsTopStrong'
 ];
 export const IDLE_VFX = [
     'LoopGlitter', 'LoopConfetti', 'LoopFireAsh', 'LoopRain', 'LoopSnow',
     'LoopDiscoBall', 'LoopVirus',
-    'FeverFire', 'FeverRainbow', 'FeverGolden', 'FeverSpeed'
+    'FeverFire', 'FeverRainbow', 'FeverGolden', 'FeverSpeed',
+    'LoopCircleSpawning', 'LoopFlashyDotSpawning', 'LoopEmoji'
 ];

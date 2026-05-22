@@ -59,6 +59,13 @@ let currentThemeIndex = 0;
 
 // Editor Selection
 let selectedAsset = null; // { type: 'bg'|'note'|'long', index: number }
+let selectedEventIds = new Set();
+let selectionBox = null; // { x1, y1, x2, y2 }
+let isSelectionDragging = false;
+let isMovingSelection = false;
+let selectionDragStartTick = 0;
+let selectionDragStartLaneIdx = 0;
+let selectionOriginalStates = new Map(); // id -> { laneId, tick }
 
 // Modal State
 let editingLaneId = null;
@@ -85,7 +92,7 @@ let bgInput, noteSpriteInput, longNoteSpriteInput, themeSettingsBtn, spriteModal
 let bgList, noteList, longNoteList, editorTitle, editorHint;
 let resizer1, resizer2, waveformPanel, editorPanel, previewPanel, dragOverlay;
 let zoomValue, liveSpeedValue, speedLerpValue, thicknessValue, widthScaleValue, vfxAlphaValue, volumeValue;
-let moveLaneLeftBtn, moveLaneRightBtn, customVfxInput, applyCustomVfxBtn;
+let customVfxInput, applyCustomVfxBtn;
 
 // -- Initialization --
 function init() {
@@ -122,8 +129,6 @@ function init() {
     vfxModal = document.getElementById('vfxModal');
     burstVfxList = document.getElementById('burstVfxList');
     idleVfxList = document.getElementById('idleVfxList');
-    moveLaneLeftBtn = document.getElementById('moveLaneLeftBtn');
-    moveLaneRightBtn = document.getElementById('moveLaneRightBtn');
     customVfxInput = document.getElementById('customVfxInput');
     applyCustomVfxBtn = document.getElementById('applyCustomVfxBtn');
 
@@ -299,10 +304,29 @@ function setupListeners() {
         updateOffsetDisplay();
     });
 
+    offsetDisplay?.addEventListener('change', () => {
+        let val = offsetDisplay.value.replace('ms', '').trim();
+        let num = parseInt(val);
+        if (!isNaN(num)) {
+            audioOffset = num / 1000;
+        }
+        updateOffsetDisplay();
+    });
+
+    offsetDisplay?.addEventListener('focus', () => {
+        offsetDisplay.value = offsetDisplay.value.replace('ms', '');
+        offsetDisplay.select();
+    });
+
+    offsetDisplay?.addEventListener('blur', () => {
+        updateOffsetDisplay();
+    });
+
     invertScrollToggle.addEventListener('change', () => { isInvertedScroll = invertScrollToggle.checked; });
     snapSelect.addEventListener('change', () => { gridSnap = parseInt(snapSelect.value); });
 
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Shift') isShiftPressed = true;
         if (document.activeElement.tagName === 'INPUT') return;
         
         const key = e.key.toLowerCase();
@@ -337,6 +361,7 @@ function setupListeners() {
     });
 
     document.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') isShiftPressed = false;
         const key = e.key.toLowerCase();
         pressedKeys.delete(key);
 
@@ -376,8 +401,6 @@ function setupListeners() {
     document.getElementById('setNoteOption')?.addEventListener('click', () => setLaneType('note'));
     document.getElementById('setThemeSwitchOption')?.addEventListener('click', () => setVfxType('SwitchThemeSet'));
     document.getElementById('deleteLaneBtn')?.addEventListener('click', deleteCurrentLane);
-    moveLaneLeftBtn?.addEventListener('click', moveLaneLeft);
-    moveLaneRightBtn?.addEventListener('click', moveLaneRight);
     applyCustomVfxBtn?.addEventListener('click', applyCustomVfx);
 
     saveSpriteBtn.onclick = saveSpriteRect;
@@ -424,7 +447,12 @@ function setupListeners() {
     initResizer(resizer2, previewPanel, true);
 
     window.addEventListener('mouseup', (e) => {
-        if (e.button === 0) isLeftDragging = false;
+        if (e.button === 0) {
+            isLeftDragging = false;
+            isSelectionDragging = false;
+            isMovingSelection = false;
+            selectionBox = null;
+        }
         if (e.button === 2) isRightDragging = false;
         if (e.button === 1) isMiddleDragging = false;
         if (spriteEditorActive) dragTarget = null;
@@ -432,7 +460,45 @@ function setupListeners() {
 
     editorCanvas.addEventListener('mousedown', (e) => {
         if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
-        if (e.button === 0) { isLeftDragging = true; tryPlaceEvent(); }
+        
+        const rect = editorCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const hitZoneY = rect.height * 0.8;
+        const laneWidth = rect.width / lanes.length;
+        const laneIdx = Math.floor(x / laneWidth);
+        const laneId = lanes[laneIdx]?.id;
+        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+        const timeAtMouse = currentTime + (hitZoneY - y) / pixelsPerSecondEditor;
+        const snappedTick = Math.round(timeToTick(timeAtMouse, bpm) / gridSnap) * gridSnap;
+
+        if (e.button === 0) {
+            if (isShiftPressed) {
+                isSelectionDragging = true;
+                selectionBox = { x1: x, y1: y, x2: x, y2: y };
+                selectedEventIds.clear();
+            } else {
+                // Check if clicking on a selected note to start move
+                const clickedEvent = events.find(ev => ev.laneId === laneId && Math.abs(ev.tick - snappedTick) < gridSnap);
+                if (clickedEvent && selectedEventIds.has(clickedEvent.id)) {
+                    isMovingSelection = true;
+                    selectionDragStartTick = snappedTick;
+                    selectionDragStartLaneIdx = laneIdx;
+                    selectionOriginalStates.clear();
+                    selectedEventIds.forEach(id => {
+                        const ev = events.find(e => e.id === id);
+                        if (ev) selectionOriginalStates.set(id, { laneId: ev.laneId, tick: ev.tick, laneIdx: lanes.findIndex(l => l.id === ev.laneId) });
+                    });
+                } else {
+                    isLeftDragging = true;
+                    // Deselect if not clicking on a selected note
+                    if (!clickedEvent || !selectedEventIds.has(clickedEvent.id)) {
+                        selectedEventIds.clear();
+                    }
+                    tryPlaceEvent();
+                }
+            }
+        }
         if (e.button === 2) { isRightDragging = true; tryRemoveEvent(); }
         if (e.button === 1) { isMiddleDragging = true; lastMouseY = e.clientY; e.preventDefault(); }
     });
@@ -448,16 +514,37 @@ function setupListeners() {
         const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
         const timeAtMouse = currentTime + (hitZoneY - y) / pixelsPerSecondEditor;
         const snappedTick = Math.round(timeToTick(timeAtMouse, bpm) / gridSnap) * gridSnap;
+        
         ghostEvent = laneId !== undefined ? { laneId, tick: snappedTick } : null;
+        
         if (vfxModal.style.display === 'block' || spriteModal.style.display === 'block') return;
-        if (isLeftDragging) tryPlaceEvent();
-        if (isRightDragging) tryRemoveEvent();
-        if (isMiddleDragging) {
-            const deltaY = e.clientY - lastMouseY;
-            lastMouseY = e.clientY;
-            const timeDelta = deltaY / pixelsPerSecondEditor;
-            pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset - timeDelta));
-            if (isPlaying) startTime = audioEngine.currentTime - pauseOffset;
+
+        if (isSelectionDragging) {
+            selectionBox.x2 = x;
+            selectionBox.y2 = y;
+            updateSelectionFromBox();
+        } else if (isMovingSelection) {
+            const tickDiff = snappedTick - selectionDragStartTick;
+            const laneDiff = laneIdx - selectionDragStartLaneIdx;
+            
+            selectionOriginalStates.forEach((state, id) => {
+                const event = events.find(ev => ev.id === id);
+                if (event) {
+                    const newLaneIdx = Math.max(0, Math.min(lanes.length - 1, state.laneIdx + laneDiff));
+                    event.laneId = lanes[newLaneIdx].id;
+                    event.tick = state.tick + tickDiff;
+                }
+            });
+        } else {
+            if (isLeftDragging) tryPlaceEvent();
+            if (isRightDragging) tryRemoveEvent();
+            if (isMiddleDragging) {
+                const deltaY = e.clientY - lastMouseY;
+                lastMouseY = e.clientY;
+                const timeDelta = deltaY / pixelsPerSecondEditor;
+                pauseOffset = Math.max(0, Math.min(duration + Math.abs(audioOffset), pauseOffset - timeDelta));
+                if (isPlaying) startTime = audioEngine.currentTime - pauseOffset;
+            }
         }
     });
 
@@ -841,52 +928,6 @@ function openVfxModal(laneId) {
     } else {
         customVfxInput.value = '';
     }
-    updateMoveButtonsState();
-}
-
-function moveLaneLeft() {
-    if (editingLaneId === null) return;
-    const index = lanes.findIndex(l => l.id === editingLaneId);
-    if (index > 0) {
-        const [lane] = lanes.splice(index, 1);
-        lanes.splice(index - 1, 0, lane);
-        renderLaneHeaders();
-        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
-        drawEditor(currentTime);
-        updateMoveButtonsState();
-    }
-}
-
-function moveLaneRight() {
-    if (editingLaneId === null) return;
-    const index = lanes.findIndex(l => l.id === editingLaneId);
-    if (index !== -1 && index < lanes.length - 1) {
-        const [lane] = lanes.splice(index, 1);
-        lanes.splice(index + 1, 0, lane);
-        renderLaneHeaders();
-        const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
-        drawEditor(currentTime);
-        updateMoveButtonsState();
-    }
-}
-
-function updateMoveButtonsState() {
-    if (editingLaneId === null || !moveLaneLeftBtn || !moveLaneRightBtn) return;
-    const index = lanes.findIndex(l => l.id === editingLaneId);
-    if (index <= 0) {
-        moveLaneLeftBtn.disabled = true;
-        moveLaneLeftBtn.classList.add('opacity-40', 'pointer-events-none');
-    } else {
-        moveLaneLeftBtn.disabled = false;
-        moveLaneLeftBtn.classList.remove('opacity-40', 'pointer-events-none');
-    }
-    if (index === -1 || index >= lanes.length - 1) {
-        moveLaneRightBtn.disabled = true;
-        moveLaneRightBtn.classList.add('opacity-40', 'pointer-events-none');
-    } else {
-        moveLaneRightBtn.disabled = false;
-        moveLaneRightBtn.classList.remove('opacity-40', 'pointer-events-none');
-    }
 }
 
 function applyCustomVfx() {
@@ -1035,7 +1076,7 @@ async function handleProjectImportFile(e) {
 
 function updateOffsetDisplay() {
     const ms = Math.round(audioOffset * 1000);
-    offsetDisplay.textContent = `${ms}ms`;
+    offsetDisplay.value = `${ms}ms`;
     if (offsetSlider) offsetSlider.value = ms;
 }
 
@@ -1180,6 +1221,45 @@ function triggerVFX(laneId, type) {
     });
 }
 
+function updateSelectionFromBox() {
+    if (!selectionBox) return;
+    const { x1, y1, x2, y2 } = selectionBox;
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+    
+    const { width, height } = editorCanvas;
+    const hitZoneY = height * 0.8;
+    const laneWidth = width / lanes.length;
+    const currentTime = isPlaying ? (audioEngine.currentTime - startTime) : pauseOffset;
+
+    selectedEventIds.clear();
+    
+    lanes.forEach((lane, laneIdx) => {
+        const segments = getNoteSegments(lane.id, events);
+        segments.forEach(seg => {
+            let isAnyEventInBox = false;
+            seg.eventIds.forEach(id => {
+                const e = events.find(ev => ev.id === id);
+                if (!e) return;
+                
+                const eventTime = tickToTime(e.tick, bpm);
+                const eventY = hitZoneY - (eventTime - currentTime) * pixelsPerSecondEditor;
+                const eventX = laneIdx * laneWidth + laneWidth / 2;
+                
+                if (eventX >= minX && eventX <= maxX && eventY >= minY && eventY <= maxY) {
+                    isAnyEventInBox = true;
+                }
+            });
+            
+            if (isAnyEventInBox) {
+                seg.eventIds.forEach(id => selectedEventIds.add(id));
+            }
+        });
+    });
+}
+
 function drawWaveform(currentTime) {
     if (!waveformPeaks) return;
     const { width, height } = waveformCanvas;
@@ -1237,6 +1317,12 @@ function drawEditor(currentTime) {
                 if (lane.type !== 'note') ctxEdit.fillStyle = VFX_COLOR;
                 else ctxEdit.fillStyle = isPartofLongGroup(e.tick) ? LONG_NOTE_COLOR : NOTE_COLOR;
                 ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
+                
+                if (selectedEventIds.has(e.id)) {
+                    ctxEdit.strokeStyle = '#fff';
+                    ctxEdit.lineWidth = 1;
+                    ctxEdit.stroke();
+                }
             }
         });
 
@@ -1268,6 +1354,16 @@ function drawEditor(currentTime) {
             const y = hitZoneY - (tickToTime(ghostEvent.tick, bpm) - currentTime) * pixelsPerSecondEditor;
             ctxEdit.fillStyle = GHOST_NOTE_COLOR; ctxEdit.beginPath(); ctxEdit.roundRect(laneIdx * laneWidth + 8, y - 4, laneWidth - 16, 8, 4); ctxEdit.fill();
         }
+    }
+
+    // Draw Selection Box
+    if (selectionBox) {
+        ctxEdit.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctxEdit.setLineDash([5, 5]);
+        ctxEdit.strokeRect(selectionBox.x1, selectionBox.y1, selectionBox.x2 - selectionBox.x1, selectionBox.y2 - selectionBox.y1);
+        ctxEdit.setLineDash([]);
+        ctxEdit.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctxEdit.fillRect(selectionBox.x1, selectionBox.y1, selectionBox.x2 - selectionBox.x1, selectionBox.y2 - selectionBox.y1);
     }
 }
 

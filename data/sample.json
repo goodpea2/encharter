@@ -1,0 +1,2274 @@
+{
+  "lanes": [
+    {
+      "id": 0,
+      "type": "note",
+      "key": "z"
+    },
+    {
+      "id": 1,
+      "type": "note",
+      "key": "c"
+    },
+    {
+      "id": 2,
+      "type": "note",
+      "key": "b"
+    },
+    {
+      "id": 3,
+      "type": "note",
+      "key": "m"
+    },
+    {
+      "id": 4,
+      "type": "vfx",
+      "vfxType": "LoopRain"
+    },
+    {
+      "id": 5,
+      "type": "vfx",
+      "vfxType": "LoopSnow"
+    },
+    {
+      "id": 6,
+      "type": "vfx",
+      "vfxType": "FeverSpeed"
+    },
+    {
+      "id": 7,
+      "type": "vfx",
+      "vfxType": "FlashFull"
+    },
+    {
+      "id": 8,
+      "type": "vfx",
+      "vfxType": "SuperFlashFull"
+    },
+    {
+      "id": 9,
+      "type": "vfx",
+      "vfxType": "BurstSideElectric"
+    },
+    {
+      "id": 15,
+      "type": "vfx",
+      "vfxType": "LaserTop"
+    },
+    {
+      "id": 10,
+      "type": "vfx",
+      "vfxType": "ElectricTop"
+    },
+    {
+      "id": 11,
+      "type": "vfx",
+      "vfxType": "SideSwipeDown"
+    },
+    {
+      "id": 12,
+      "type": "vfx",
+      "vfxType": "D2_CircleBuildUp"
+    },
+    {
+      "id": 19,
+      "type": "vfx",
+      "vfxType": "D2_LightBuildUp"
+    },
+    {
+      "id": 13,
+      "type": "vfx",
+      "vfxType": "BurstHeart"
+    },
+    {
+      "id": 14,
+      "type": "vfx",
+      "vfxType": "SongComplete"
+    },
+    {
+      "id": 16,
+      "type": "vfx",
+      "vfxType": "CircleTopThinL"
+    },
+    {
+      "id": 18,
+      "type": "vfx",
+      "vfxType": "CircleTopThin"
+    },
+    {
+      "id": 17,
+      "type": "vfx",
+      "vfxType": "CircleTopThinR"
+    }
+  ],
+  "events": [
+    {
+      "laneId": 0,
+      "tick": 96,
+      "id": 0
+    },
+    {
+      "laneId": 16,
+      "tick": 96,
+      "id": 1372
+    },
+    {
+      "laneId": 1,
+      "tick": 132,
+      "id": 1
+    },
+    {
+      "laneId": 17,
+      "tick": 132,
+      "id": 1373
+    },
+    {
+      "laneId": 2,
+      "tick": 192,
+      "id": 2
+    },
+    {
+      "laneId": 17,
+      "tick": 192,
+      "id": 1374
+    },
+    {
+      "laneId": 3,
+      "tick": 228,
+      "id": 3
+    },
+    {
+      "laneId": 7,
+      "tick": 228,
+      "id": 1376
+    },
+    {
+      "laneId": 16,
+      "tick": 228,
+      "id": 1375
+    },
+    {
+      "laneId": 1,
+      "tick": 234,
+      "id": 6
+    },
+    {
+      "laneId": 2,
+      "tick": 246,
+      "id": 7
+    },
+    {
+      "laneId": 2,
+      "tick": 264,
+      "id": 8
+    },
+    {
+      "laneId": 0,
+      "tick": 270,
+      "id": 9
+    },
+    {
+      "laneId": 1,
+      "tick": 282,
+      "id": 10
+    },
+    {
+      "laneId": 2,
+      "tick": 306,
+      "id": 3140
+    },
+    {
+      "laneId": 0,
+      "tick": 324,
+      "id": 12
+    },
+    {
+      "laneId": 3,
+      "tick": 324,
+      "id": 14
+    },
+    {
+      "laneId": 4,
+      "tick": 324,
+      "endTick": 720,
+      "id": 1381
+    },
+    {
+      "laneId": 8,
+      "tick": 324,
+      "id": 1264
+    },
+    {
+      "laneId": 18,
+      "tick": 324,
+      "id": 1382
+    },
+    {
+      "laneId": 2,
+      "tick": 336,
+      "id": 15
+    },
+    {
+      "laneId": 1,
+      "tick": 348,
+      "id": 16
+    },
+    {
+      "laneId": 0,
+      "tick": 360,
+      "id": 17
+    },
+    {
+      "laneId": 2,
+      "tick": 360,
+      "id": 21
+    },
+    {
+      "laneId": 7,
+      "tick": 360,
+      "id": 1265
+    },
+    {
+      "laneId": 13,
+      "tick": 360,
+      "id": 1381
+    },
+    {
+      "laneId": 1,
+      "tick": 384,
+      "id": 2254
+    },
+    {
+      "laneId": 0,
+      "tick": 396,
+      "id": 20
+    },
+    {
+      "laneId": 1,
+      "tick": 402,
+      "id": 22
+    },
+    {
+      "laneId": 3,
+      "tick": 420,
+      "id": 23
+    },
+    {
+      "laneId": 7,
+      "tick": 420,
+      "id": 1266
+    },
+    {
+      "laneId": 18,
+      "tick": 420,
+      "id": 1383
+    },
+    {
+      "laneId": 2,
+      "tick": 432,
+      "id": 24
+    },
+    {
+      "laneId": 1,
+      "tick": 444,
+      "id": 25
+    },
+    {
+      "laneId": 0,
+      "tick": 450,
+      "id": 26
+    },
+    {
+      "laneId": 1,
+      "tick": 456,
+      "id": 27
+    },
+    {
+      "laneId": 7,
+      "tick": 456,
+      "id": 1267
+    },
+    {
+      "laneId": 13,
+      "tick": 456,
+      "id": 1380
+    },
+    {
+      "laneId": 1,
+      "tick": 480,
+      "id": 2255
+    },
+    {
+      "laneId": 3,
+      "tick": 492,
+      "id": 32
+    },
+    {
+      "laneId": 2,
+      "tick": 498,
+      "id": 33
+    },
+    {
+      "laneId": 1,
+      "tick": 504,
+      "id": 34
+    },
+    {
+      "laneId": 0,
+      "tick": 510,
+      "id": 35
+    },
+    {
+      "laneId": 3,
+      "tick": 516,
+      "id": 36
+    },
+    {
+      "laneId": 7,
+      "tick": 516,
+      "id": 1268
+    },
+    {
+      "laneId": 18,
+      "tick": 516,
+      "id": 1384
+    },
+    {
+      "laneId": 2,
+      "tick": 528,
+      "id": 37
+    },
+    {
+      "laneId": 1,
+      "tick": 540,
+      "id": 38
+    },
+    {
+      "laneId": 0,
+      "tick": 552,
+      "id": 39
+    },
+    {
+      "laneId": 2,
+      "tick": 552,
+      "id": 43
+    },
+    {
+      "laneId": 7,
+      "tick": 552,
+      "id": 1269
+    },
+    {
+      "laneId": 13,
+      "tick": 552,
+      "id": 1385
+    },
+    {
+      "laneId": 1,
+      "tick": 576,
+      "id": 45
+    },
+    {
+      "laneId": 0,
+      "tick": 588,
+      "id": 3141
+    },
+    {
+      "laneId": 2,
+      "tick": 594,
+      "id": 3142
+    },
+    {
+      "laneId": 2,
+      "tick": 612,
+      "id": 50
+    },
+    {
+      "laneId": 3,
+      "tick": 612,
+      "id": 51
+    },
+    {
+      "laneId": 7,
+      "tick": 612,
+      "id": 1270
+    },
+    {
+      "laneId": 17,
+      "tick": 612,
+      "id": 3116
+    },
+    {
+      "laneId": 9,
+      "tick": 618,
+      "id": 3112
+    },
+    {
+      "laneId": 1,
+      "tick": 630,
+      "id": 54
+    },
+    {
+      "laneId": 2,
+      "tick": 630,
+      "id": 55
+    },
+    {
+      "laneId": 7,
+      "tick": 630,
+      "id": 1271
+    },
+    {
+      "laneId": 18,
+      "tick": 630,
+      "id": 3117
+    },
+    {
+      "laneId": 9,
+      "tick": 636,
+      "id": 3113
+    },
+    {
+      "laneId": 0,
+      "tick": 648,
+      "id": 57
+    },
+    {
+      "laneId": 1,
+      "tick": 648,
+      "id": 56
+    },
+    {
+      "laneId": 7,
+      "tick": 648,
+      "id": 1272
+    },
+    {
+      "laneId": 16,
+      "tick": 648,
+      "id": 3118
+    },
+    {
+      "laneId": 9,
+      "tick": 654,
+      "id": 3114
+    },
+    {
+      "laneId": 1,
+      "tick": 672,
+      "id": 60
+    },
+    {
+      "laneId": 0,
+      "tick": 684,
+      "id": 61
+    },
+    {
+      "laneId": 1,
+      "tick": 753,
+      "id": 65
+    },
+    {
+      "laneId": 3,
+      "tick": 753,
+      "id": 88
+    },
+    {
+      "laneId": 18,
+      "tick": 753,
+      "id": 3128
+    },
+    {
+      "laneId": 1,
+      "tick": 765,
+      "id": 66
+    },
+    {
+      "laneId": 2,
+      "tick": 771,
+      "id": 91
+    },
+    {
+      "laneId": 1,
+      "tick": 777,
+      "id": 67
+    },
+    {
+      "laneId": 3,
+      "tick": 777,
+      "id": 90
+    },
+    {
+      "laneId": 1,
+      "tick": 789,
+      "id": 68
+    },
+    {
+      "laneId": 2,
+      "tick": 795,
+      "id": 92
+    },
+    {
+      "laneId": 1,
+      "tick": 801,
+      "id": 69
+    },
+    {
+      "laneId": 3,
+      "tick": 801,
+      "id": 93
+    },
+    {
+      "laneId": 1,
+      "tick": 813,
+      "id": 70
+    },
+    {
+      "laneId": 3,
+      "tick": 819,
+      "id": 94
+    },
+    {
+      "laneId": 1,
+      "tick": 825,
+      "id": 71
+    },
+    {
+      "laneId": 2,
+      "tick": 825,
+      "id": 95
+    },
+    {
+      "laneId": 1,
+      "tick": 837,
+      "id": 72
+    },
+    {
+      "laneId": 0,
+      "tick": 849,
+      "id": 73
+    },
+    {
+      "laneId": 2,
+      "tick": 849,
+      "id": 96
+    },
+    {
+      "laneId": 0,
+      "tick": 861,
+      "id": 74
+    },
+    {
+      "laneId": 1,
+      "tick": 867,
+      "id": 100
+    },
+    {
+      "laneId": 0,
+      "tick": 873,
+      "id": 75
+    },
+    {
+      "laneId": 2,
+      "tick": 873,
+      "id": 99
+    },
+    {
+      "laneId": 0,
+      "tick": 885,
+      "id": 76
+    },
+    {
+      "laneId": 1,
+      "tick": 891,
+      "id": 101
+    },
+    {
+      "laneId": 0,
+      "tick": 897,
+      "id": 77
+    },
+    {
+      "laneId": 2,
+      "tick": 897,
+      "id": 102
+    },
+    {
+      "laneId": 0,
+      "tick": 909,
+      "id": 78
+    },
+    {
+      "laneId": 1,
+      "tick": 915,
+      "id": 105
+    },
+    {
+      "laneId": 0,
+      "tick": 921,
+      "id": 79
+    },
+    {
+      "laneId": 2,
+      "tick": 921,
+      "id": 104
+    },
+    {
+      "laneId": 0,
+      "tick": 933,
+      "id": 80
+    },
+    {
+      "laneId": 2,
+      "tick": 933,
+      "id": 106
+    },
+    {
+      "laneId": 2,
+      "tick": 948,
+      "id": 83
+    },
+    {
+      "laneId": 2,
+      "tick": 960,
+      "id": 84
+    },
+    {
+      "laneId": 2,
+      "tick": 972,
+      "id": 85
+    },
+    {
+      "laneId": 2,
+      "tick": 984,
+      "id": 86
+    },
+    {
+      "laneId": 2,
+      "tick": 996,
+      "id": 87
+    },
+    {
+      "laneId": 3,
+      "tick": 996,
+      "id": 107
+    },
+    {
+      "laneId": 2,
+      "tick": 1008,
+      "id": 108
+    },
+    {
+      "laneId": 1,
+      "tick": 1014,
+      "id": 114
+    },
+    {
+      "laneId": 2,
+      "tick": 1020,
+      "id": 3131
+    },
+    {
+      "laneId": 2,
+      "tick": 1032,
+      "id": 3132
+    },
+    {
+      "laneId": 2,
+      "tick": 1044,
+      "id": 3133
+    },
+    {
+      "laneId": 2,
+      "tick": 1080,
+      "id": 1249
+    },
+    {
+      "laneId": 1,
+      "tick": 1086,
+      "id": 1248
+    },
+    {
+      "laneId": 17,
+      "tick": 1098,
+      "id": 3120
+    },
+    {
+      "laneId": 18,
+      "tick": 1104,
+      "id": 3121
+    },
+    {
+      "laneId": 16,
+      "tick": 1110,
+      "id": 3122
+    },
+    {
+      "laneId": 18,
+      "tick": 1116,
+      "id": 3123
+    },
+    {
+      "laneId": 17,
+      "tick": 1122,
+      "id": 3124
+    },
+    {
+      "laneId": 18,
+      "tick": 1128,
+      "id": 3125
+    },
+    {
+      "laneId": 16,
+      "tick": 1134,
+      "id": 3126
+    },
+    {
+      "laneId": 0,
+      "tick": 1140,
+      "id": 119
+    },
+    {
+      "laneId": 2,
+      "tick": 1140,
+      "id": 118
+    },
+    {
+      "laneId": 5,
+      "tick": 1140,
+      "endTick": 1902,
+      "id": 2256
+    },
+    {
+      "laneId": 8,
+      "tick": 1140,
+      "id": 1274
+    },
+    {
+      "laneId": 11,
+      "tick": 1140,
+      "id": 3127
+    },
+    {
+      "laneId": 0,
+      "tick": 1158,
+      "id": 122
+    },
+    {
+      "laneId": 2,
+      "tick": 1164,
+      "id": 121
+    },
+    {
+      "laneId": 0,
+      "tick": 1182,
+      "id": 127
+    },
+    {
+      "laneId": 2,
+      "tick": 1188,
+      "id": 126
+    },
+    {
+      "laneId": 2,
+      "tick": 1206,
+      "id": 129
+    },
+    {
+      "laneId": 0,
+      "tick": 1212,
+      "id": 128
+    },
+    {
+      "laneId": 0,
+      "tick": 1230,
+      "id": 131
+    },
+    {
+      "laneId": 2,
+      "tick": 1230,
+      "id": 130
+    },
+    {
+      "laneId": 0,
+      "tick": 1248,
+      "id": 135
+    },
+    {
+      "laneId": 2,
+      "tick": 1254,
+      "id": 134
+    },
+    {
+      "laneId": 0,
+      "tick": 1278,
+      "id": 136
+    },
+    {
+      "laneId": 2,
+      "tick": 1284,
+      "id": 137
+    },
+    {
+      "laneId": 0,
+      "tick": 1296,
+      "id": 138
+    },
+    {
+      "laneId": 2,
+      "tick": 1302,
+      "id": 139
+    },
+    {
+      "laneId": 3,
+      "tick": 1314,
+      "id": 140
+    },
+    {
+      "laneId": 3,
+      "tick": 1326,
+      "id": 141
+    },
+    {
+      "laneId": 3,
+      "tick": 1380,
+      "id": 142
+    },
+    {
+      "laneId": 1,
+      "tick": 1392,
+      "id": 143
+    },
+    {
+      "laneId": 1,
+      "tick": 1398,
+      "id": 144
+    },
+    {
+      "laneId": 2,
+      "tick": 1410,
+      "id": 145
+    },
+    {
+      "laneId": 2,
+      "tick": 1422,
+      "id": 146
+    },
+    {
+      "laneId": 3,
+      "tick": 1428,
+      "id": 148
+    },
+    {
+      "laneId": 2,
+      "tick": 1452,
+      "id": 149
+    },
+    {
+      "laneId": 1,
+      "tick": 1476,
+      "id": 150
+    },
+    {
+      "laneId": 0,
+      "tick": 1500,
+      "id": 154
+    },
+    {
+      "laneId": 1,
+      "tick": 1512,
+      "id": 155
+    },
+    {
+      "laneId": 2,
+      "tick": 1524,
+      "id": 156
+    },
+    {
+      "laneId": 15,
+      "tick": 1524,
+      "id": 1358
+    },
+    {
+      "laneId": 9,
+      "tick": 1530,
+      "id": 1276
+    },
+    {
+      "laneId": 2,
+      "tick": 1536,
+      "id": 157
+    },
+    {
+      "laneId": 2,
+      "tick": 1548,
+      "id": 158
+    },
+    {
+      "laneId": 3,
+      "tick": 1560,
+      "endTick": 1572,
+      "id": 2511
+    },
+    {
+      "laneId": 15,
+      "tick": 1560,
+      "id": 1359
+    },
+    {
+      "laneId": 9,
+      "tick": 1566,
+      "id": 1278
+    },
+    {
+      "laneId": 2,
+      "tick": 1584,
+      "id": 184
+    },
+    {
+      "laneId": 2,
+      "tick": 1596,
+      "id": 185
+    },
+    {
+      "laneId": 7,
+      "tick": 1596,
+      "id": 1279
+    },
+    {
+      "laneId": 1,
+      "tick": 1608,
+      "id": 186
+    },
+    {
+      "laneId": 0,
+      "tick": 1620,
+      "id": 187
+    },
+    {
+      "laneId": 15,
+      "tick": 1620,
+      "id": 1360
+    },
+    {
+      "laneId": 9,
+      "tick": 1626,
+      "id": 1281
+    },
+    {
+      "laneId": 2,
+      "tick": 1632,
+      "endTick": 1644,
+      "id": 2516
+    },
+    {
+      "laneId": 1,
+      "tick": 1656,
+      "id": 189
+    },
+    {
+      "laneId": 15,
+      "tick": 1656,
+      "id": 1361
+    },
+    {
+      "laneId": 9,
+      "tick": 1662,
+      "id": 1283
+    },
+    {
+      "laneId": 1,
+      "tick": 1692,
+      "id": 168
+    },
+    {
+      "laneId": 7,
+      "tick": 1692,
+      "id": 1284
+    },
+    {
+      "laneId": 2,
+      "tick": 1704,
+      "id": 169
+    },
+    {
+      "laneId": 3,
+      "tick": 1716,
+      "id": 170
+    },
+    {
+      "laneId": 15,
+      "tick": 1716,
+      "id": 1362
+    },
+    {
+      "laneId": 9,
+      "tick": 1722,
+      "id": 1287
+    },
+    {
+      "laneId": 3,
+      "tick": 1728,
+      "id": 171
+    },
+    {
+      "laneId": 3,
+      "tick": 1740,
+      "id": 172
+    },
+    {
+      "laneId": 0,
+      "tick": 1752,
+      "endTick": 1764,
+      "id": 2521
+    },
+    {
+      "laneId": 3,
+      "tick": 1752,
+      "endTick": 1764,
+      "id": 2526
+    },
+    {
+      "laneId": 15,
+      "tick": 1752,
+      "id": 1363
+    },
+    {
+      "laneId": 9,
+      "tick": 1758,
+      "id": 1289
+    },
+    {
+      "laneId": 2,
+      "tick": 1776,
+      "id": 175
+    },
+    {
+      "laneId": 7,
+      "tick": 1788,
+      "id": 1292
+    },
+    {
+      "laneId": 1,
+      "tick": 1812,
+      "id": 176
+    },
+    {
+      "laneId": 2,
+      "tick": 1812,
+      "id": 177
+    },
+    {
+      "laneId": 7,
+      "tick": 1812,
+      "id": 1364
+    },
+    {
+      "laneId": 10,
+      "tick": 1812,
+      "id": 1290
+    },
+    {
+      "laneId": 0,
+      "tick": 1830,
+      "id": 179
+    },
+    {
+      "laneId": 1,
+      "tick": 1830,
+      "id": 178
+    },
+    {
+      "laneId": 7,
+      "tick": 1830,
+      "id": 1365
+    },
+    {
+      "laneId": 10,
+      "tick": 1830,
+      "id": 1293
+    },
+    {
+      "laneId": 2,
+      "tick": 1848,
+      "id": 181
+    },
+    {
+      "laneId": 3,
+      "tick": 1848,
+      "id": 180
+    },
+    {
+      "laneId": 7,
+      "tick": 1848,
+      "id": 1366
+    },
+    {
+      "laneId": 10,
+      "tick": 1848,
+      "id": 1294
+    },
+    {
+      "laneId": 1,
+      "tick": 1866,
+      "id": 182
+    },
+    {
+      "laneId": 2,
+      "tick": 1866,
+      "id": 183
+    },
+    {
+      "laneId": 7,
+      "tick": 1866,
+      "id": 1367
+    },
+    {
+      "laneId": 10,
+      "tick": 1866,
+      "id": 1295
+    },
+    {
+      "laneId": 0,
+      "tick": 1884,
+      "id": 190
+    },
+    {
+      "laneId": 1,
+      "tick": 1896,
+      "id": 191
+    },
+    {
+      "laneId": 2,
+      "tick": 1908,
+      "id": 192
+    },
+    {
+      "laneId": 2,
+      "tick": 1920,
+      "id": 193
+    },
+    {
+      "laneId": 2,
+      "tick": 1932,
+      "id": 194
+    },
+    {
+      "laneId": 3,
+      "tick": 1944,
+      "endTick": 1956,
+      "id": 2531
+    },
+    {
+      "laneId": 18,
+      "tick": 1944,
+      "id": 1410
+    },
+    {
+      "laneId": 2,
+      "tick": 1968,
+      "id": 196
+    },
+    {
+      "laneId": 1,
+      "tick": 1992,
+      "id": 199
+    },
+    {
+      "laneId": 0,
+      "tick": 2004,
+      "id": 200
+    },
+    {
+      "laneId": 2,
+      "tick": 2016,
+      "endTick": 2028,
+      "id": 2536
+    },
+    {
+      "laneId": 1,
+      "tick": 2040,
+      "id": 202
+    },
+    {
+      "laneId": 18,
+      "tick": 2040,
+      "id": 1412
+    },
+    {
+      "laneId": 0,
+      "tick": 2076,
+      "id": 203
+    },
+    {
+      "laneId": 1,
+      "tick": 2088,
+      "id": 204
+    },
+    {
+      "laneId": 0,
+      "tick": 2100,
+      "id": 206
+    },
+    {
+      "laneId": 2,
+      "tick": 2100,
+      "id": 205
+    },
+    {
+      "laneId": 4,
+      "tick": 2100,
+      "endTick": 2238,
+      "id": 2541
+    },
+    {
+      "laneId": 11,
+      "tick": 2100,
+      "id": 1297
+    },
+    {
+      "laneId": 0,
+      "tick": 2112,
+      "id": 207
+    },
+    {
+      "laneId": 11,
+      "tick": 2112,
+      "id": 1298
+    },
+    {
+      "laneId": 0,
+      "tick": 2124,
+      "id": 208
+    },
+    {
+      "laneId": 11,
+      "tick": 2124,
+      "id": 1299
+    },
+    {
+      "laneId": 0,
+      "tick": 2136,
+      "id": 209
+    },
+    {
+      "laneId": 11,
+      "tick": 2136,
+      "id": 1300
+    },
+    {
+      "laneId": 0,
+      "tick": 2148,
+      "id": 210
+    },
+    {
+      "laneId": 2,
+      "tick": 2148,
+      "id": 220
+    },
+    {
+      "laneId": 11,
+      "tick": 2148,
+      "id": 1301
+    },
+    {
+      "laneId": 0,
+      "tick": 2160,
+      "id": 211
+    },
+    {
+      "laneId": 2,
+      "tick": 2160,
+      "id": 228
+    },
+    {
+      "laneId": 11,
+      "tick": 2160,
+      "id": 1302
+    },
+    {
+      "laneId": 3,
+      "tick": 2166,
+      "id": 229
+    },
+    {
+      "laneId": 0,
+      "tick": 2172,
+      "id": 212
+    },
+    {
+      "laneId": 11,
+      "tick": 2172,
+      "id": 1303
+    },
+    {
+      "laneId": 3,
+      "tick": 2178,
+      "id": 230
+    },
+    {
+      "laneId": 0,
+      "tick": 2184,
+      "id": 213
+    },
+    {
+      "laneId": 2,
+      "tick": 2184,
+      "id": 231
+    },
+    {
+      "laneId": 11,
+      "tick": 2184,
+      "id": 1304
+    },
+    {
+      "laneId": 1,
+      "tick": 2196,
+      "id": 214
+    },
+    {
+      "laneId": 9,
+      "tick": 2196,
+      "id": 1319
+    },
+    {
+      "laneId": 11,
+      "tick": 2196,
+      "id": 1305
+    },
+    {
+      "laneId": 9,
+      "tick": 2202,
+      "id": 1320
+    },
+    {
+      "laneId": 1,
+      "tick": 2208,
+      "id": 215
+    },
+    {
+      "laneId": 9,
+      "tick": 2208,
+      "id": 1321
+    },
+    {
+      "laneId": 11,
+      "tick": 2208,
+      "id": 1306
+    },
+    {
+      "laneId": 9,
+      "tick": 2214,
+      "id": 1322
+    },
+    {
+      "laneId": 2,
+      "tick": 2220,
+      "id": 216
+    },
+    {
+      "laneId": 9,
+      "tick": 2220,
+      "id": 1323
+    },
+    {
+      "laneId": 11,
+      "tick": 2220,
+      "id": 1308
+    },
+    {
+      "laneId": 9,
+      "tick": 2226,
+      "id": 1324
+    },
+    {
+      "laneId": 2,
+      "tick": 2232,
+      "id": 217
+    },
+    {
+      "laneId": 9,
+      "tick": 2232,
+      "id": 1325
+    },
+    {
+      "laneId": 11,
+      "tick": 2232,
+      "id": 1309
+    },
+    {
+      "laneId": 3,
+      "tick": 2238,
+      "id": 219
+    },
+    {
+      "laneId": 7,
+      "tick": 2238,
+      "id": 1318
+    },
+    {
+      "laneId": 9,
+      "tick": 2238,
+      "id": 1326
+    },
+    {
+      "laneId": 12,
+      "tick": 2238,
+      "id": 1307
+    },
+    {
+      "laneId": 0,
+      "tick": 2286,
+      "id": 232
+    },
+    {
+      "laneId": 2,
+      "tick": 2286,
+      "id": 252
+    },
+    {
+      "laneId": 6,
+      "tick": 2286,
+      "endTick": 3063,
+      "id": 2588
+    },
+    {
+      "laneId": 8,
+      "tick": 2286,
+      "id": 1327
+    },
+    {
+      "laneId": 13,
+      "tick": 2286,
+      "id": 1329
+    },
+    {
+      "laneId": 0,
+      "tick": 2298,
+      "id": 233
+    },
+    {
+      "laneId": 2,
+      "tick": 2298,
+      "id": 253
+    },
+    {
+      "laneId": 2,
+      "tick": 2304,
+      "id": 254
+    },
+    {
+      "laneId": 0,
+      "tick": 2310,
+      "id": 234
+    },
+    {
+      "laneId": 2,
+      "tick": 2310,
+      "id": 255
+    },
+    {
+      "laneId": 2,
+      "tick": 2316,
+      "id": 256
+    },
+    {
+      "laneId": 0,
+      "tick": 2322,
+      "id": 235
+    },
+    {
+      "laneId": 2,
+      "tick": 2328,
+      "id": 257
+    },
+    {
+      "laneId": 0,
+      "tick": 2334,
+      "id": 236
+    },
+    {
+      "laneId": 2,
+      "tick": 2334,
+      "id": 258
+    },
+    {
+      "laneId": 2,
+      "tick": 2340,
+      "id": 259
+    },
+    {
+      "laneId": 0,
+      "tick": 2346,
+      "id": 237
+    },
+    {
+      "laneId": 2,
+      "tick": 2352,
+      "id": 260
+    },
+    {
+      "laneId": 0,
+      "tick": 2358,
+      "id": 238
+    },
+    {
+      "laneId": 2,
+      "tick": 2364,
+      "id": 261
+    },
+    {
+      "laneId": 0,
+      "tick": 2370,
+      "id": 239
+    },
+    {
+      "laneId": 3,
+      "tick": 2370,
+      "id": 262
+    },
+    {
+      "laneId": 1,
+      "tick": 2382,
+      "id": 242
+    },
+    {
+      "laneId": 3,
+      "tick": 2382,
+      "id": 263
+    },
+    {
+      "laneId": 1,
+      "tick": 2394,
+      "id": 243
+    },
+    {
+      "laneId": 3,
+      "tick": 2394,
+      "id": 265
+    },
+    {
+      "laneId": 3,
+      "tick": 2400,
+      "id": 269
+    },
+    {
+      "laneId": 1,
+      "tick": 2406,
+      "id": 244
+    },
+    {
+      "laneId": 3,
+      "tick": 2406,
+      "id": 267
+    },
+    {
+      "laneId": 1,
+      "tick": 2418,
+      "id": 247
+    },
+    {
+      "laneId": 3,
+      "tick": 2418,
+      "id": 270
+    },
+    {
+      "laneId": 2,
+      "tick": 2430,
+      "endTick": 2442,
+      "id": 2848
+    },
+    {
+      "laneId": 2,
+      "tick": 2478,
+      "id": 249
+    },
+    {
+      "laneId": 3,
+      "tick": 2478,
+      "id": 1250
+    },
+    {
+      "laneId": 10,
+      "tick": 2478,
+      "id": 3134
+    },
+    {
+      "laneId": 1,
+      "tick": 2490,
+      "id": 279
+    },
+    {
+      "laneId": 3,
+      "tick": 2490,
+      "id": 1251
+    },
+    {
+      "laneId": 1,
+      "tick": 2502,
+      "id": 281
+    },
+    {
+      "laneId": 2,
+      "tick": 2502,
+      "id": 251
+    },
+    {
+      "laneId": 0,
+      "tick": 2508,
+      "id": 282
+    },
+    {
+      "laneId": 1,
+      "tick": 2514,
+      "endTick": 2526,
+      "id": 2853
+    },
+    {
+      "laneId": 2,
+      "tick": 2514,
+      "endTick": 2526,
+      "id": 2858
+    },
+    {
+      "laneId": 9,
+      "tick": 2514,
+      "id": 1332
+    },
+    {
+      "laneId": 11,
+      "tick": 2514,
+      "id": 1333
+    },
+    {
+      "laneId": 2,
+      "tick": 2574,
+      "id": 285
+    },
+    {
+      "laneId": 3,
+      "tick": 2574,
+      "id": 1252
+    },
+    {
+      "laneId": 10,
+      "tick": 2574,
+      "id": 1334
+    },
+    {
+      "laneId": 1,
+      "tick": 2586,
+      "id": 288
+    },
+    {
+      "laneId": 3,
+      "tick": 2586,
+      "id": 1253
+    },
+    {
+      "laneId": 1,
+      "tick": 2598,
+      "id": 289
+    },
+    {
+      "laneId": 2,
+      "tick": 2598,
+      "id": 293
+    },
+    {
+      "laneId": 0,
+      "tick": 2604,
+      "id": 295
+    },
+    {
+      "laneId": 0,
+      "tick": 2610,
+      "endTick": 2622,
+      "id": 2863
+    },
+    {
+      "laneId": 2,
+      "tick": 2610,
+      "endTick": 2622,
+      "id": 2868
+    },
+    {
+      "laneId": 9,
+      "tick": 2610,
+      "id": 1336
+    },
+    {
+      "laneId": 11,
+      "tick": 2610,
+      "id": 1335
+    },
+    {
+      "laneId": 0,
+      "tick": 2670,
+      "id": 297
+    },
+    {
+      "laneId": 2,
+      "tick": 2670,
+      "id": 308
+    },
+    {
+      "laneId": 8,
+      "tick": 2670,
+      "id": 3135
+    },
+    {
+      "laneId": 0,
+      "tick": 2682,
+      "id": 298
+    },
+    {
+      "laneId": 2,
+      "tick": 2682,
+      "id": 309
+    },
+    {
+      "laneId": 2,
+      "tick": 2688,
+      "id": 310
+    },
+    {
+      "laneId": 0,
+      "tick": 2694,
+      "id": 299
+    },
+    {
+      "laneId": 2,
+      "tick": 2694,
+      "id": 311
+    },
+    {
+      "laneId": 2,
+      "tick": 2700,
+      "id": 312
+    },
+    {
+      "laneId": 0,
+      "tick": 2706,
+      "id": 300
+    },
+    {
+      "laneId": 2,
+      "tick": 2712,
+      "id": 314
+    },
+    {
+      "laneId": 0,
+      "tick": 2718,
+      "id": 301
+    },
+    {
+      "laneId": 2,
+      "tick": 2718,
+      "id": 313
+    },
+    {
+      "laneId": 2,
+      "tick": 2724,
+      "id": 315
+    },
+    {
+      "laneId": 0,
+      "tick": 2730,
+      "id": 302
+    },
+    {
+      "laneId": 2,
+      "tick": 2736,
+      "id": 316
+    },
+    {
+      "laneId": 0,
+      "tick": 2742,
+      "id": 303
+    },
+    {
+      "laneId": 2,
+      "tick": 2748,
+      "id": 317
+    },
+    {
+      "laneId": 0,
+      "tick": 2754,
+      "id": 305
+    },
+    {
+      "laneId": 3,
+      "tick": 2754,
+      "id": 319
+    },
+    {
+      "laneId": 1,
+      "tick": 2766,
+      "id": 306
+    },
+    {
+      "laneId": 3,
+      "tick": 2766,
+      "id": 320
+    },
+    {
+      "laneId": 1,
+      "tick": 2778,
+      "id": 307
+    },
+    {
+      "laneId": 3,
+      "tick": 2778,
+      "id": 321
+    },
+    {
+      "laneId": 3,
+      "tick": 2784,
+      "id": 322
+    },
+    {
+      "laneId": 1,
+      "tick": 2790,
+      "id": 323
+    },
+    {
+      "laneId": 3,
+      "tick": 2796,
+      "id": 325
+    },
+    {
+      "laneId": 1,
+      "tick": 2802,
+      "id": 324
+    },
+    {
+      "laneId": 3,
+      "tick": 2802,
+      "id": 326
+    },
+    {
+      "laneId": 2,
+      "tick": 2814,
+      "endTick": 2826,
+      "id": 2873
+    },
+    {
+      "laneId": 2,
+      "tick": 2862,
+      "id": 3137
+    },
+    {
+      "laneId": 3,
+      "tick": 2862,
+      "id": 3136
+    },
+    {
+      "laneId": 10,
+      "tick": 2862,
+      "id": 3138
+    },
+    {
+      "laneId": 1,
+      "tick": 2874,
+      "id": 1254
+    },
+    {
+      "laneId": 3,
+      "tick": 2874,
+      "id": 1255
+    },
+    {
+      "laneId": 1,
+      "tick": 2886,
+      "id": 1256
+    },
+    {
+      "laneId": 2,
+      "tick": 2886,
+      "id": 333
+    },
+    {
+      "laneId": 0,
+      "tick": 2892,
+      "id": 1257
+    },
+    {
+      "laneId": 1,
+      "tick": 2898,
+      "endTick": 2910,
+      "id": 2878
+    },
+    {
+      "laneId": 2,
+      "tick": 2898,
+      "endTick": 2910,
+      "id": 2883
+    },
+    {
+      "laneId": 9,
+      "tick": 2898,
+      "id": 1340
+    },
+    {
+      "laneId": 11,
+      "tick": 2898,
+      "id": 1339
+    },
+    {
+      "laneId": 2,
+      "tick": 2958,
+      "id": 337
+    },
+    {
+      "laneId": 3,
+      "tick": 2958,
+      "id": 336
+    },
+    {
+      "laneId": 10,
+      "tick": 2958,
+      "id": 3139
+    },
+    {
+      "laneId": 1,
+      "tick": 2970,
+      "id": 1259
+    },
+    {
+      "laneId": 3,
+      "tick": 2970,
+      "id": 1260
+    },
+    {
+      "laneId": 2,
+      "tick": 2982,
+      "id": 339
+    },
+    {
+      "laneId": 1,
+      "tick": 2988,
+      "id": 341
+    },
+    {
+      "laneId": 0,
+      "tick": 2994,
+      "endTick": 3006,
+      "id": 2888
+    },
+    {
+      "laneId": 2,
+      "tick": 2994,
+      "endTick": 3006,
+      "id": 2893
+    },
+    {
+      "laneId": 9,
+      "tick": 2994,
+      "id": 1343
+    },
+    {
+      "laneId": 11,
+      "tick": 2994,
+      "id": 1342
+    },
+    {
+      "laneId": 1,
+      "tick": 3024,
+      "id": 343
+    },
+    {
+      "laneId": 3,
+      "tick": 3042,
+      "id": 344
+    },
+    {
+      "laneId": 2,
+      "tick": 3060,
+      "endTick": 3084,
+      "id": 2898
+    },
+    {
+      "laneId": 13,
+      "tick": 3060,
+      "id": 1345
+    },
+    {
+      "laneId": 5,
+      "tick": 3072,
+      "endTick": 3456,
+      "id": 2907
+    },
+    {
+      "laneId": 3,
+      "tick": 3096,
+      "id": 346
+    },
+    {
+      "laneId": 18,
+      "tick": 3096,
+      "id": 1413
+    },
+    {
+      "laneId": 2,
+      "tick": 3102,
+      "endTick": 3126,
+      "id": 3036
+    },
+    {
+      "laneId": 11,
+      "tick": 3102,
+      "id": 1346
+    },
+    {
+      "laneId": 3,
+      "tick": 3144,
+      "id": 348
+    },
+    {
+      "laneId": 18,
+      "tick": 3144,
+      "id": 1414
+    },
+    {
+      "laneId": 2,
+      "tick": 3150,
+      "endTick": 3174,
+      "id": 3045
+    },
+    {
+      "laneId": 11,
+      "tick": 3150,
+      "id": 1347
+    },
+    {
+      "laneId": 1,
+      "tick": 3192,
+      "id": 352
+    },
+    {
+      "laneId": 16,
+      "tick": 3192,
+      "id": 1415
+    },
+    {
+      "laneId": 17,
+      "tick": 3192,
+      "id": 1416
+    },
+    {
+      "laneId": 0,
+      "tick": 3198,
+      "endTick": 3213,
+      "id": 3054
+    },
+    {
+      "laneId": 11,
+      "tick": 3198,
+      "id": 1348
+    },
+    {
+      "laneId": 1,
+      "tick": 3216,
+      "id": 354
+    },
+    {
+      "laneId": 3,
+      "tick": 3234,
+      "id": 356
+    },
+    {
+      "laneId": 2,
+      "tick": 3252,
+      "endTick": 3276,
+      "id": 3060
+    },
+    {
+      "laneId": 7,
+      "tick": 3276,
+      "id": 1352
+    },
+    {
+      "laneId": 12,
+      "tick": 3276,
+      "id": 1351
+    },
+    {
+      "laneId": 13,
+      "tick": 3276,
+      "id": 2202
+    },
+    {
+      "laneId": 3,
+      "tick": 3288,
+      "id": 358
+    },
+    {
+      "laneId": 18,
+      "tick": 3288,
+      "id": 1417
+    },
+    {
+      "laneId": 2,
+      "tick": 3294,
+      "endTick": 3318,
+      "id": 3069
+    },
+    {
+      "laneId": 11,
+      "tick": 3294,
+      "id": 1369
+    },
+    {
+      "laneId": 3,
+      "tick": 3336,
+      "id": 362
+    },
+    {
+      "laneId": 18,
+      "tick": 3336,
+      "id": 1418
+    },
+    {
+      "laneId": 2,
+      "tick": 3342,
+      "endTick": 3372,
+      "id": 3078
+    },
+    {
+      "laneId": 11,
+      "tick": 3342,
+      "id": 1354
+    },
+    {
+      "laneId": 9,
+      "tick": 3348,
+      "id": 2228
+    },
+    {
+      "laneId": 9,
+      "tick": 3354,
+      "id": 2227
+    },
+    {
+      "laneId": 9,
+      "tick": 3360,
+      "id": 2212
+    },
+    {
+      "laneId": 9,
+      "tick": 3366,
+      "id": 2213
+    },
+    {
+      "laneId": 9,
+      "tick": 3372,
+      "id": 2214
+    },
+    {
+      "laneId": 9,
+      "tick": 3378,
+      "id": 2215
+    },
+    {
+      "laneId": 1,
+      "tick": 3384,
+      "id": 366
+    },
+    {
+      "laneId": 9,
+      "tick": 3384,
+      "id": 2216
+    },
+    {
+      "laneId": 16,
+      "tick": 3384,
+      "id": 1419
+    },
+    {
+      "laneId": 17,
+      "tick": 3384,
+      "id": 1420
+    },
+    {
+      "laneId": 0,
+      "tick": 3390,
+      "endTick": 3444,
+      "id": 3089
+    },
+    {
+      "laneId": 9,
+      "tick": 3390,
+      "id": 2217
+    },
+    {
+      "laneId": 11,
+      "tick": 3390,
+      "id": 1355
+    },
+    {
+      "laneId": 9,
+      "tick": 3396,
+      "id": 2218
+    },
+    {
+      "laneId": 9,
+      "tick": 3402,
+      "id": 2219
+    },
+    {
+      "laneId": 9,
+      "tick": 3408,
+      "id": 2220
+    },
+    {
+      "laneId": 9,
+      "tick": 3414,
+      "id": 2221
+    },
+    {
+      "laneId": 9,
+      "tick": 3420,
+      "id": 2222
+    },
+    {
+      "laneId": 9,
+      "tick": 3426,
+      "id": 2223
+    },
+    {
+      "laneId": 9,
+      "tick": 3432,
+      "id": 2224
+    },
+    {
+      "laneId": 9,
+      "tick": 3438,
+      "id": 2225
+    },
+    {
+      "laneId": 9,
+      "tick": 3444,
+      "id": 2226
+    },
+    {
+      "laneId": 19,
+      "tick": 3444,
+      "id": 2201
+    },
+    {
+      "laneId": 14,
+      "tick": 3444,
+      "id": 1357
+    },
+    {
+      "laneId": 18,
+      "tick": 3444,
+      "id": 2211
+    }
+  ],
+  "audioOffset": -0.839,
+  "bpm": 97,
+  "ticksPerBar": 96,
+  "version": "5.0"
+}
